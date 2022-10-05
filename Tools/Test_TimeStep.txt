@@ -1,0 +1,38 @@
+import os
+def get_parameter(dir,param='dt'):
+	f=open(dir+'param.nml')
+	for line in f.readlines():
+		if param+' =' in line:
+			param= line.split('=')[1].split('!')[0]
+			try:
+				param=float(param)
+			except:
+				pass
+			break		
+	return param		
+
+def set_parameters(dir,params=['dt',],values=[40,]):
+	f=open(dir+'param.nml')
+	fout=open(dir+'param_new.nml','w')
+	for line in f.readlines():
+		for param,value in zip(params,values):
+			if param+' =' in line:
+				line=' {:s} = {:d} !'.format(param,value)+line.split('!')[1]
+				values.remove(value)
+				prams.remove(param)
+		fout.write(line)
+	os.rename(dir+'param.nml',dir+'param.nml0')	
+	os.rename(dir+'param_new.nml',dir+'param.nml')	
+
+def set_time():
+	import numpy as np
+	params=['dt','nspool','ihfskip','nhot_write','nspool_sta']	
+	values=[get_parameter('./',param=param) for param in params]
+	values=[time]+list(np.asarray(values[1:])*values[0]/time)
+	set_parameters(dir,params=params,values=values)
+
+### time experiments
+dts=[20,40,60]
+
+	
+os.system('ls -l')	

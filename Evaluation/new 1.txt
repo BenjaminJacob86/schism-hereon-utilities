@@ -1,0 +1,38 @@
+rm *.site *.sp2d fort.*  my_job.*
+
+
+
+
+
+dort kommt es bis zu einer Tiefe von 10 m, vereinzelt bis zu 17 m, vor.
+
+
+Supra litoral not
+
+
+https://www.sciencedirect.com/topics/agricultural-and-biological-sciences/zostera-marina
+
+
+
+It is distributed worldwide in the intertidal and subtidal zones of shallow seas, where it grows in muddy or sandy substrata, generally in areas with reduced flow and good water transparency. 
+
+max depth 10 m
+
+Depth colonization of eelgrass (Zostera marina) and macroalgae as determined by water transparency in Danish coastal waters
+
+
+and median lower-depth limits are 4.0 m for eelgras
+Depth limits for growth of eelgrass and macroalgae increase linearly with transparency in the coastal waters. The relationships are highly significant (p<10-6) and transparency accounts for about 60% of the variability of depth limits. Eelgrass extends
+approximately to half the maximum depth of macroalgae, presumably because of greater respiratory costs to maintain the below-ground rhizomes and roots of eelgrass, which often constitutes half the plant weight.
+ 
+
+
+The ecology of eelgrass, Zostera marina (L.), fish communities. I. Structural analysis
+Author links open overlay panelS.MarshallAdams1
+https://doi.org/10.1016/0022-0981(76)90007-1Get rights and content
+Abstract
+Fish populations utilizing eelgrass, Zostera marina (L.), beds in two different estuarine areas near Beaufort, North Carolina were analysed and compared to determine aspects of their community structure. The fish community of the eelgrass beds was characterized by low diversity and high standing crops of biomass and energy, both of which showed seasonal variation. Wide temperature fluctuations related to the overall shallowness of the beds probably regulated the diversity of fishes utilizing the beds. This community was dominated by pinfish, Lagodon rhombiodes (L.), which comprised 45% and 67% of the fish biomass in the Phillips Island and Bogue Sound beds, respectively.
+
+Changes in total body caloric content were probably related to developmental stages and changes in diet. Adult fish often had significantly higher weight-specific caloric contents than juvenile fish. Monthly or seasonal variations in caloric content of the organic matter of pinfish had little influence on the caloric content within the various sizes of pinfish.
+
+There was a significant correlation between fish biomass, temperature, and Zostera biomass. Fish biomass was highest when temperature and grass biomass were at a maximum. In general, water depth over the beds had little effect on the standing crop of fish within the bed, but cooler waters which occurred at night, darkness, or both, had a large effect.

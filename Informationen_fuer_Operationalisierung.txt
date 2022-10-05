@@ -1,0 +1,60 @@
+
+
+Deutsche Bucht setup und verwendeter soruce code: zu verfügung gestellt von Johannes.
+
+GitHub repository:  https://github.com/schism-dev/schism
+
+
+<run_directory> # directory containing schism grid and aprameter files, aswell as subdirecotries sflux (containing atmospheric forcing) and outputs (model calculations are saved here as netcdf files)
+
+
+Forcing:
+	Atmospheric from DWD:
+		created by Matlabscript \schism-hzg-utilities\Forcing\dwd_scripts_4_radinc.m
+		
+		computes solar radition and specific humidity
+		renames variables for wind, surface temperature.
+		writes to files, which schism reads in as:
+			sflux_air_?.????.nc - momentum / Temp 
+	        	sflux_rad_?.????.nc - radiative 
+			sflux_prc_?.????.nc - precipitation rate
+
+	Open Boundary from Amm15:
+		via Matlab script \schism-hzg-utilities\Forcing\gen_boundary_forcing.m
+		perform horizontal inverse distance weighted interpolation, followe by vertical linear interpolation
+
+		creates boundary forcing files *.th.nc  which needs to be linked for schsism as 
+		SAL_3D.th.nc  (time_series(time, nOpenBndNodes, nLevels, nComponents)  |nComponents=1)
+  	        TEM_3D.th.nc  (time_series(time, nOpenBndNodes, nLevels, nComponents)  |nComponents=1)
+                elev2D.th.nc  (time_series(time, nOpenBndNodes, nLevels, nComponents)  |nlvels=1 |nComponents=1)
+		uv3D.th.nc    (time_series(time, nOpenBndNodes, nLevels, nComponents)  |nComponents=2)
+
+
+	Alternativ schism-hzg-utilities\Forcing\gen_boundary_forcing_from_cmems.py,
+	bisher nur verwendet für gröbere gebiete und Aufgrund der bisweilen nur simpleren 
+	nearest neighbour interpolation noch nicht geignet für die Deutsche Bucht.
+	
+
+Hotstart (hotstart.nc):
+	Erstinitialisierung basierend auf AMM15 model:
+	Erstallbar via \schism-hzg-utilities\hotstart\genHot.py unter Verwendung
+        von schism_setup() calss aus  schism-hzg-utilities\schism.py 
+	(Intialfeld (T,S,Zeta,) mit Werten definiert an Knoten, Elementen und Side centers)
+
+	Fortlaufende Intialfelder aus SCHISM hotstart output (<rund_directory>/outputs/hotstart_<processor#>_<stacknr>.nc)
+	via z.B. /gpfs/home/jacobb/git/schism-master/schismgotm_fluxcalc/bin/combine_hotstart7
+	Letzt verfügbare hotstart via \schism-hzg-utilities\scripts\createLastHot.batch
+
+
+River inflow:
+	flux.th (Time x river  Timeseries als Open boundary forcing, konfiguriert in bctides.in)
+	Vorgabe, benutze Klimatologie
+
+
+Output:
+	Prozessorweise NetCDF output (mit allen variablen) <run_directory>/outputs/schout_<proc#_stack#.nc> (e.g. schout_0001_1.nc)
+
+
+
+
+

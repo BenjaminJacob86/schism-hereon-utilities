@@ -1,0 +1,19 @@
+import asyncio
+import time
+def background(f):
+    def wrapped(*args, **kwargs):
+        return asyncio.get_event_loop().run_in_executor(None, f, *args, **kwargs)
+
+    return wrapped
+
+@background
+def your_function(argument):
+    time.sleep(2)
+    print('function finished for '+str(argument))
+
+
+for i in range(10):
+    your_function(i)
+
+
+print('loop finished')

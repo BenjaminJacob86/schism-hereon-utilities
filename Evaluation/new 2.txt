@@ -1,0 +1,23 @@
+
+
+The areal coverage of Zostera in the southern part of the NE Atlantic region has suffered significant losses in many regions except in the Baltic and Zostera now mainly grows at 2–8 m depth
+
+
+
+
+https://geocortex01.miljodirektoratet.no/Html5Viewer/?viewer=naturbase
+
+
+
+s=schism_setup(vgrid_file='vgrid.in')
+plt.ion()
+for gr3 in 'sav_cd.gr3','sav_D.gr3','sav_h.gr3','sav_N.gr3':
+	s.read_gr3(gr3)
+	
+s.plotAtnodes(s.gr3['sav_D'])
+s.gr3['sav_h']	
+	
+	
+sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
+from schism import *
+s=schism_setup(vgrid_file='vgrid.in')

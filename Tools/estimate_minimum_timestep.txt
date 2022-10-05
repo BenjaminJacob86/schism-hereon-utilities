@@ -1,0 +1,11 @@
+maxDepth=[]
+for ielement in s.ielement:
+        maxDepth[ielement-1]=max([s.depths[idx-1] for idx in s.nv[ielement-1]])
+
+
+R=np.asarray(s.resolution_by_element.values())
+cfl=
+
+cfl_by_elements=np.sqrt(g*maxDepth)*dt/dxs
+
+dt=dx*cfl/np.sqrt(g*maxDepth)

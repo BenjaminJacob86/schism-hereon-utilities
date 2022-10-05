@@ -1,0 +1,56 @@
+#!/bin/bash
+#SBATCH --job-name=CombinNC
+#SBATCH --partition=pTest
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=39
+#SBATCH --time=03:00:00
+#SBATCH --mail-type=FAIL
+#SBATCH --account=KSD
+#SBATCH --output=comb.o%j
+#SBATCH --error=comb.e%j
+
+
+module load compilers/intel/2019.4.243
+module load intelmpi #/2019.3.199
+module load netcdf/4.7.0
+module load hdf5/1.10.5
+module load pnetcdf/1.11.2
+
+
+# start and end stack for combination
+stack0=1
+stack1=78
+step=1
+
+
+
+count=0
+for argi in "$@"
+do
+((count++))
+if (( count == 1)); then
+        stack0=$argi
+elif (( count == 2)); then
+        stack1=$argi
+fi
+echo $argi
+done
+
+script=/gpfs/home/jacobb/git/schism-master/schismgotm_fluxcalc/bin/combine_output11
+
+# File runs local in top directory of outputs
+set +k
+cd ..
+cdir=$(pwd)
+cd ${cdir}/outputs #outputs
+
+
+ for ((stack=stack0;stack<=stack1-1;stack+=step))
+      do
+       (( stack2=stack+step-1 ))
+         $script -b $stack -e $stack2&
+	echo submitted   $stack  $stack2	
+        done
+
+         wait
+

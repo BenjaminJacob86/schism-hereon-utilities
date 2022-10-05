@@ -1,0 +1,111 @@
+# libraries
+### loops over .ic (or any file of format as gr3 if necessary) performing nearest neighbour
+# interpolation to transfer from one setup to another (this is done in lonlat coordinate framework)
+import os
+import netCDF4
+import sys
+import numpy as np
+from matplotlib import pyplot as plt
+from glob import glob
+import netCDF4
+import pickle 
+
+#own libraries
+sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')#
+from schism import *
+
+source_setup='/gpfs/work/chenw1/SCHISM/cfgs/GB_2017_wave_sed/'
+dest_setup='/gpfs/work/chenw1/SCHISM/cfgs/Ems_domain_transferred/'
+
+
+
+#class to load gr3 files
+################################### copy gr3 files  ##############################################################################
+class gr3file():  # for tris - add quads
+	def __init__(self,hgrid_file='hgrid.gr3'):
+
+		self.hgrid_file=hgrid_file
+
+		# parse hgrid file
+		f = open(hgrid_file)
+		self.description = f.readline().rstrip()
+		dat = f.readline().split()
+		self.nelements = int(dat[0])
+		self.nnodes = int(dat[1])
+
+		n=[]
+		x=[]
+		y=[]
+		d=[]
+		self.depthsdict={}
+		self.xdict={}
+		self.ydict={}
+		for nn in range(self.nnodes):
+			dat=f.readline().split()
+			n.append(int(dat[0]))
+			x.append(float(dat[1]))
+			y.append(float(dat[2]))
+			d.append(float(dat[3]))
+			self.depthsdict[n[-1]] = d[-1]
+			self.ydict[n[-1]] = y[-1]
+			self.xdict[n[-1]] = x[-1]
+		self.inodes = n
+		self.x = x
+		self.y = y
+		self.depths = d
+
+		# gr3 file might lack element table
+		n=[]
+		nv = []
+		nvdict = {}
+		for nn in range(self.nelements):
+			dat=f.readline().split()
+			if len(dat)>0:
+				n.append(int(dat[0]))
+				nvnum = int(dat[1])
+				nv.append([ int(ii) for ii in dat[2:2+nvnum]])
+				nvdict[n[-1]] = nv[-1]
+		self.ielement = n
+		self.nv = nv
+		self.nvdict = nvdict
+
+############
+os.chdir(source_setup)
+src=schism_setup()
+src.init_node_tree(latlon=True)  # initialize nearest neighbour interpolation function
+os.chdir(dest_setup)
+dest=schism_setup()
+
+# coordinates of the destination setup
+qlon,qlat=np.asarray(dest.lon),np.asarray(dest.lat)
+coordinates=list(zip(qlon,qlat))
+nn=src.node_tree_latlon.query(coordinates)[1] #  get nearest neighbours from  orignal mesh for those
+
+gr3files=glob(source_setup+'*ic') # loop over ic files
+gr3files=np.asarray(gr3files)
+delinds=[]
+for i in range(len(gr3files)):
+	if 'hgrid' in gr3files[i]:
+		delinds.append(i)
+gr3files=np.delete(gr3files,np.asarray(delinds,int))
+
+for filei in gr3files:
+	print('interpolating file'+filei)
+	try:
+		gr3=gr3file(filei)
+		#nodevalues=interpolant.interp_bary(gr3.depths) # barycentric interpolation
+		#nodevalues[interpolant.no_parents]=interpolant.interp_nn(np.asarray(gr3.depths),interpolant.no_parents,tol_dist=643) # next neighbour interpolation for
+		
+		 # the values described by the gr3  are in the field depth
+		nodevalues=np.asarray(gr3.depths)[nn]
+		name=filei[filei.rfind('/')+1:]
+		dest.dump_gr3_spat_var(name,nodevalues)
+	except:
+		print('error with file '+filei)
+		pass
+
+
+
+
+
+

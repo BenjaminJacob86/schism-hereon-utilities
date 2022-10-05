@@ -1,0 +1,28 @@
+import numpy as np
+import matplotlib
+matplotlib.use('Agg') # backend
+file='tvd.prop'
+m=np.loadtxt(file)
+
+dtvd=5 # use tvd in areas deeper
+
+#constant
+if 0:
+	m[:,1]=0
+
+if 1: # depth threshold based
+	import sys
+	sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
+	from schism import * # import schism functions
+	s=schism_setup()
+	s.depths=np.asarray(s.depths)
+	Delem=np.asarray([s.depths[np.asarray(elem)-1].mean()  for elem in s.nv])
+	m[:,1]=np.asarray(Delem>dtvd,int)
+	s.plotAtelems(m[:,1]) 
+	plt.title('tvd.prop')
+	plt.savefig('tvd.png',dpi=300)
+	
+np.savetxt(file,m,fmt='%d')
+
+
+

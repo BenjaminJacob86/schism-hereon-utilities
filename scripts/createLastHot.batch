@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --job-name=GenHot
+#SBATCH --partition=pCluster
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=00:30:00
+#SBATCH --mail-type=FAIL
+#SBATCH --account=KSD
+#SBATCH --output=schism.o%j
+#SBATCH --error=schism.e%j
+
+
+echo start hotsart scan  >> infotext
+
+ #find latest hot startnumber by name (make sure to not have outdated files in outputs)
+
+cd ..
+maindir=$(pwd)
+cdir=$maindir
+ cd $cdir/outputs/
+fname=$(find -name 'hotstart_0000*nc' | sort -V | tail -1) #get file with highest hotsart iteration number
+ fname=${fname:2}                               # remove "./" from fname
+
+
+ it=$(echo ${fname} | sed 's/.*_//'  | sed 's/\.*.nc//')
+ echo last hotstart iteration: $it >>../infotext
+
+script=/gpfs/home/jacobb/git/schism-master/schismgotm_fluxcalc/bin/combine_hotstart7
+
+$script --iteration $it -i --nproc 1080 -p --ntracer 2 -t >> infotext
+
+
+sleep 300
+echo "hotstart combined" >> ../infotext
+cd $maindir
+sleep 10
+mv hotstart.nc hotstarts/hotstart_alt.nc
+sleep 10
+mv $maindir/outputs/hotstart_it=${it}.nc $maindir/hotstarts/
+ln -sf hotstarts/hotstart_it=${it}.nc  hotstart.nc
+
+
