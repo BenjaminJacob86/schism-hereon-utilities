@@ -1402,7 +1402,7 @@ class schism_station_output:
 class schism_outputs_by_variable():
    def __init__(self,ncdir='./outputs/',min_stack=0,max_stack=-1,varlist=None):
       """ output class for xarray access to schism  by variable output
-			schism_outputs_by_variable(ncdir='./outputs/',max_stack=-1). ncdir is netcdf output directory max_stack is the highest number of stacks(this is identical with the highest stack_number only if all stacks from _1 in the folder). If varfiles==None, If varfiles=[out2d] only those files with a matching pattern will be taken"""
+			schism_outputs_by_variable(ncdir='./outputs/',min_stack=0,max_stack=-1). ncdir is netcdf output directory max_stack is the highest number of stacks(this is identical with the highest stack_number only if all stacks from _1 in the folder). If varfiles==None, If varfiles=[out2d] only those files with a matching pattern will be taken"""
       self.ncdir=ncdir
 
       #from IPython import embed; embed()
@@ -1426,7 +1426,7 @@ class schism_outputs_by_variable():
          #if key==list(files.keys())[0] and (max_stack>-1):
          #     max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
          #self.ds[key]=xr.open_mfdataset(files[key][:max_stack])
-         self.ds[key]=xr.concat([xr.open_dataset(file).chunk() for file in files[key][:max_stack]],dim='time')
+         self.ds[key]=xr.concat([xr.open_dataset(file).chunk() for file in files[key][min_stack:max_stack]],dim='time')
 	  
       exclude=[]#exclude=['time','SCHISM_hgrid', 'SCHISM_hgrid_face_nodes', 'SCHISM_hgrid_edge_nodes', 'SCHISM_hgrid_node_x',     'SCHISM_hgrid_node_y', 'bottom_index_node', 'SCHISM_hgrid_face_x', 'SCHISM_hgrid_face_y',     'ele_bottom_index', 'SCHISM_hgrid_edge_x', 'SCHISM_hgrid_edge_y', 'edge_bottom_index',     'sigma', 'dry_value_flag', 'coordinate_system_flag', 'minimum_depth', 'sigma_h_c', 'sigma_theta_b',      'sigma_theta_f', 'sigma_maxdepth', 'Cs'] # exclude for plot selection
       self.vardict={} # variable to nc dict relations
