@@ -51,10 +51,11 @@ if dest_setup[-1]!='/':
 	dest_setup+='/'
 
 
-
+## what inputs to clone from different setup
 do_bnd=1        # transfer boundaries
 do_vgrid=0      # transfer vgrid
 do_gr3=1        # transfer gr3 files
+do_ic=1        # transfer ic files
 do_hot=0        # transfer hotsart
 do_vm_source=0  # transfer sources 
 do_bath=1       # transfer bathymetries
@@ -402,7 +403,27 @@ if do_gr3:
 			print('error with file '+filei)
 			pass
 
-	sout.dump_tvd_prop() 
+# interpolate .ic files			
+if do_ic:
+	gr3files=glob(source_setup+'*.ic')
+	gr3files=np.asarray(gr3files)
+	delinds=[]
+	
+	gr3files=np.delete(gr3files,np.asarray(delinds,int))
+
+	for filei in gr3files:
+		print('interpolating file'+filei)
+		try:
+			gr3=gr3file(filei)
+			nodevalues=interpolant.interp_bary(gr3.depths) # barycentric interpolation
+			nodevalues[interpolant.no_parents]=interpolant.interp_nn(np.asarray(gr3.depths),interpolant.no_parents,tol_dist=643) # next neighbour interpolation for
+			name=filei[filei.rfind('/')+1:]
+			sout.dump_gr3_spat_var(name,nodevalues)
+		except:
+			print('error with file '+filei)
+			pass			
+			
+sout.dump_tvd_prop() 
 ##################################################
 
 

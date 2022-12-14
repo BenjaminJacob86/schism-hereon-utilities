@@ -18,6 +18,7 @@ from matplotlib.collections import PolyCollection
 import datetime as dt
 import xarray as xr
 import glob
+from scipy.spatial import cKDTree
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class schism_setup(object):
@@ -139,6 +140,13 @@ class schism_setup(object):
             iinds = self.nx[len(self.element_sides[i])][ii]
             self.side_nodes[self.nsides] = [self.nvdict[i][iinds[0]],self.nvdict[i][iinds[1]]]
 
+
+      # side center coordinates
+      sides=np.asarray(list(self.side_nodes.values()))-1
+      x,y=np.asarray(self.x),np.asarray(self.y)	
+      scx,scy=x[sides].mean(axis=1),y[sides].mean(axis=1)
+      self.sidetree=cKDTree(list(zip(scx,scy)))	
+			
       # average resolution_by_element on nodes
       self.resolution_by_nodes = {}
       for inode in self.node_neighbour_elements:
@@ -225,41 +233,6 @@ class schism_setup(object):
       self.element_tree_xy = None
       self.element_tree_latlon = None
       self.element_depth = None
-      
-#  def parse_vgrid(self,vgrid_file='vgrid.in'):
-#      #import numpy as np
-#      f = open(vgrid_file)
-#      line=f.readline()
-#      if '!' in line:
-#        line=line.split('!')[0]	
-#      first = int(line)
-#      if first == 1: # unsructured vertical
-#        znum = int(f.readline())
-#        self.znum = znum
-#        a = {}
-#        self.bidx = {}
-#        for line in f.readlines():
-#          sigma1d = -9999.*np.ones((znum,))
-#          data = line.split()
-#          self.bidx[int(data[0])] = int(data[1])
-#          sigma1d[int(data[1])-1:] = np.asarray([float(ii) for ii in data[2:]])
-#          a[int(data[0])] = np.ma.masked_equal(sigma1d,-9999.)
-#        f.close()
-#        self.vgrid = a
-#      else: # sigma - z assume z
-#        self.znum=int(f.readline().split(' ')[0])
-#        f.readline()
-#        nz=int(f.readline().split(' ')[0])
-#        f.close()
-#        if nz > 1:
-#          print('error multiple z levels cann not read sz grid which is not pure sgima')
-#          return
-#        else:
-#          m=np.loadtxt(vgrid_file,skiprows=6,comments='!')[:,1]
-#          self.vgrid={}
-#          for i,d in enumerate(s.depths):
-#            self.vgrid[i+1]=s.depths[i]*m	
-
 
   def parse_vgrid(self,vgrid_file='vgrid.in'):
       #import numpy as np
@@ -285,9 +258,6 @@ class schism_setup(object):
         self.znum,self.n_zlevels,self.h_s=f.readline().split(' ')[:3]
         self.znum,self.n_zlevels,self.h_s=int(self.znum),int(self.n_zlevels),np.float(self.h_s)
         f.readline()
-        # zlevels
-        #nz=int(f.readline().split(' ')[0])
-		#f.readline()
         f.close()
         M=np.loadtxt(vgrid_file,skiprows=3,comments='!',max_rows=self.n_zlevels)
         if len(M.shape) > 1:
@@ -302,26 +272,13 @@ class schism_setup(object):
           mask_sonly=np.hstack((np.ones(self.n_zlevels-1,bool),np.zeros(len(self.slevels),bool))) #z
           for i,d in enumerate(self.depths): #pure slevel when shallower?
             if d < self.h_s: # pure sigma ?		   
-              #combi=np.hstack((self.zlevels[:-1],s.depths[i]*self.slevels))
-			  #combi=np.hstack((self.zlevels[:-1],s.depths[i]*self.slevels)) #express as total depths part
-              #combi=np.hstack((self.zlevels[:-1],self.h_s*self.slevels)) #z
-              #self.vgrid[i+1]=np.ma.masked_array(combi,mask=comb<-d) # stores z
-              #self.vgrid[i+1]=np.ma.masked_array(combi/d,mask=comb<-d) # expressed as sigma with respect to total depth#
               self.vgrid[i+1]=np.ma.masked_array(np.hstack((-np.ones(self.n_zlevels-1),self.slevels)),mask=mask_sonly)
             else:
-              #self.vgrid[i+1]=np.ma.masked_array(comb,mask=comb<-d)
-			  #self.vgrid[i+1]=np.ma.masked_array(comb/d,mask=comb<-d)
-             # self.vgrid[i+1]=np.ma.masked_array(np.hstack((-np.ones(self.n_zlevels),self.slevels)),mask=mask_sonly)
-			  
               combi=np.hstack((self.zlevels[:-1],self.h_s*self.slevels)) #z
-              #self.vgrid[i+1]=np.ma.masked_array(combi,mask=comb<-d) # stores z
               self.vgrid[i+1]=np.ma.masked_array(combi/d,mask=comb<-d) # expressed as sigma with 
-			  
         else: # pure sigma
           for i,d in enumerate(self.depths):
-            #self.vgrid[i+1]=np.ma.masked_array(self.depths[i]*self.slevels,mask=False) # not times depths
             self.vgrid[i+1]=np.ma.masked_array(self.slevels,mask=False) # not times depths
-
 			
   def dump_hgridll(self,filename='hgrid_new.ll'):
     f = open(filename,'w')
@@ -392,11 +349,6 @@ class schism_setup(object):
               for val in outarray:
                   f.write(' {:12f}'.format(val))
 
-
-#  def get_bdy_latlon(self):
-#      bdylon = [ self.lon[ii-1] for ii in self.bdy_nodes ]
-#      bdylat = [ self.lat[ii-1] for ii in self.bdy_nodes ]
-#      return (bdylon,bdylat)
   def get_bdy_latlon(self):
       bdnodes=[]
       for land,ocean in list(zip(self.land_segments,self.bdy_segments)):		
@@ -407,7 +359,6 @@ class schism_setup(object):
       bdylat=np.asarray(self.lat)[bdnodes-1]
       return (bdylon,bdylat)
 
-	  
   def plot_domain_boundaries(self,append=0,nr=0,latlon=True,plot_legend=True,obd_clr='r',lcol = (0.6,0.6,0.6),islcol = (0.3,0.3,0.3)):
       from pylab import figure,plot,show,legend,xlabel,ylabel
       if append==0:	
@@ -529,7 +480,6 @@ class schism_setup(object):
         f.write('%d 1\n'%i)
       f.close()
 
-
   def init_node_tree(self,latlon=True):
     #print('  build node tree')
     from scipy.spatial import cKDTree
@@ -622,7 +572,6 @@ class schism_setup(object):
     return ridx
 
 
-
   def cpp_proj_elemNodes(self,nodelist):
       # create cntral point porjection for element of lon lat        
       #import numpy as np
@@ -648,9 +597,6 @@ class schism_setup(object):
 
 
   def compute_cfl(self,dt,grid='gr3'):
-
-      
-    #import numpy as np
     
     if grid=='cpp':
         dxs=np.asarray(list(self.min_cpp_sidelength_by_element.values()))
@@ -668,8 +614,6 @@ class schism_setup(object):
     
     for ielement in self.ielement:
         maxDepth[ielement-1]=max([self.depths[idx-1] for idx in self.nv[ielement-1]])
-        
-    
     
     #for ielem in self.ielement:
     cfl_by_elements=np.sqrt(g*maxDepth)*dt/dxs
@@ -761,8 +705,8 @@ class schism_setup(object):
     # Spatial Average
     A=[]
     for i in range(self.nvplt.shape[0]):
-      nodes=s.nvplt[i,:]+1
-      A.append(s.proj_area(nodes))	
+      nodes=self.nvplt[i,:]+1
+      A.append(self.proj_area(nodes))	
     return A
 
 	  
@@ -1077,10 +1021,13 @@ class schism_output2():
 
 
       try:
-        self.nc = xr.open_mfdataset(schismfiles)
+        #self.nc = xr.open_mfdataset(schismfiles)
+        self.nc =xr.concat( [xr.open_dataset(fname).chunk() for fname in schismfiles], dim='time')
+		
       except:
         print('error loading, trying now leaving out last stack '+ schismfiles[-1])	  
-        self.nc = xr.open_mfdataset(schismfiles[:-1])
+        #self.nc = xr.open_mfdataset(schismfiles[:-1])
+        self.nc =xr.concat( [xr.open_dataset(fname).chunk() for fname in schismfiles[:-1]], dim='time')
       self.ncv = self.nc.variables
       self.lon = self.ncv['SCHISM_hgrid_node_x'][:].values
       self.lat = self.ncv['SCHISM_hgrid_node_y'][:].values
@@ -1239,6 +1186,95 @@ class bp_transect():
       uacross=(hvel*transect.nor[:,:,:]).sum(axis=2) 	
       return ualong,uacross	        
 
+class bp_transect_newio():
+ 
+    def __init__(self,s,acc,x,y,latlon=False,nn=False):
+      """ bp_transect(s,ds,x,y,lonlat=False,nn=False) s:=schism_setup(), ds:= xarray handle ,x,y coordinates
+	  Constraut transect object with track tangent normal and tangents, 
+	  and along across projection function. If nn = True limit input coordinates
+	  to those with different nearest neighbouts, only, ie to 
+	  get xarray output access as nearest neighbour for transect coordinates. """
+      #from IPython import embed; embed()
+      self.x,self.y=x,y	  
+      s.init_node_tree(latlon=latlon)
+      coords=list(zip(x,y))
+      p=np.asarray(coords)
+      if latlon==False:	  
+       dd,self.nn=s.node_tree_xy.query(coords)
+      else:	  
+       dd,self.nn=s.node_tree_latlon.query(coords)
+
+       # restrict to on transect data
+      class cacc():
+       def __init__(self,acc):
+        self.vardict=acc.vardict
+        self.get=acc.get
+
+      self.acc=cacc(acc) 
+      self.acc.ds={}
+      if nn:
+       self.nn,iunq=np.unique(self.nn,return_index=True)
+       self.x,self.y=self.x[iunq],self.y[iunq]
+       p=p[iunq,:]
+	   
+       self.acc.ds={}
+       for key in np.unique(list(acc.vardict.values())):
+        if type(acc.ds[key])==dict:
+         self.acc.ds[key]=acc.ds[key][key].sel(nSCHISM_hgrid_node=self.nn) #nearest neighbour			
+       else:
+         self.acc.ds[key]=acc.ds[key].sel(nSCHISM_hgrid_node=self.nn) #nearest neighbour
+
+      else:		
+       parents,weights=s.find_parent_tri(x,y,dThresh=1000,latlon=latlon)	# get weights  
+       punq_nodes=np.unique(s.nvplt[parents]) # subslect parent nodes
+       self.parents=s.nvplt[parents]
+       for key in np.unique(list(acc.vardict.values())):
+         if type(acc.ds[key])==dict:
+           self.acc.ds[key]=acc.ds[key][key].sel(nSCHISM_hgrid_node=punq_nodes) #nearest neighbour			
+         else:
+           self.acc.ds[key]=acc.ds[key].sel(nSCHISM_hgrid_node=punq_nodes) #nearest neighbour	   
+	   
+       for nr,node in enumerate(punq_nodes):
+         self.parents[self.parents==node]=nr
+        #self.weights=[np.tile(np.tile(weights[:,i],(self.ds.chunks['time'][0],1)),(self.ds['zcor'].shape[2],1,1)).swapaxes(0,1).swapaxes(1,2) for i in range(3)]  
+       dsz=self.acc.ds['zCoordinates']['zCoordinates']		
+       self.weights=[np.tile(np.tile(weights[:,i],(dsz.shape[0],1)),(dsz.shape[2],1,1)).swapaxes(0,1).swapaxes(1,2) for i in range(3)]
+       
+    def interp_to_trans(self,varname):
+   	
+      """ perform barycentric interpolation along sigmalyers for variable """
+      ncomponents=1+(len(self.acc.ds[varname][varname].shape)==4)
+      dsz=self.acc.ds['zCoordinates']['zCoordinates']
+      dsv=self.acc.ds[varname][varname]
+      if ncomponents==2:
+        out=(np.zeros(( (dsz.shape[0],) + self.x.shape + (dsz.shape[-1],ncomponents) )))
+        for icomp in range(ncomponents):
+            out[:,:,:,icomp]=dsv[:,self.parents[:,0],:,icomp]*self.weights[0]+dsv[:,self.parents[:,1],:,icomp]*self.weights[1]+dsv[:,self.parents[:,2],:,icomp]*self.weights[2]
+        return out
+      else:
+       return  dsv[:,self.parents[:,0],:]*self.weights[0]+ dsv[:,self.parents[:,1],:]*self.weights[1]+ dsv[:,self.parents[:,2],:]*self.weights[2]
+       
+      # projection for velocties
+      dl=np.sqrt((np.diff(p,axis=0)**2).sum(axis=1))
+      #dl=np.sqrt(np.diff(x)**2+np.diff(y)**2)
+      self.l=np.hstack((0,np.cumsum(dl)))
+      z=ds['zcor']
+      self.l=np.tile(self.l,[z.shape[-1],1]).T
+      tangent=np.diff(p,axis=0)/np.tile(dl,(2,1)).T
+      nor=np.vstack((tangent[:,1],-tangent[:,0] )).T
+      tangent=np.vstack((tangent[0,:],tangent))
+      nor=np.vstack((nor[0,:],nor))
+      self.tangent=np.tile(tangent,(z.shape[-1],1,1)).swapaxes(0,1)
+      self.nor=np.tile(nor,(z.shape[-1],1,1)).swapaxes(0,1)	  
+	  
+	  
+    def proj_hvel_along_accros(self,transect,hvel):
+      """ Projet hvel of transect to along and across direction """	
+      ualong=(hvel*transect.tangent[:,:,:]).sum(axis=2) 	
+      uacross=(hvel*transect.nor[:,:,:]).sum(axis=2) 	
+      return ualong,uacross	        
+
+
 	  
 class sources:		
 	"""	load source fluxes for schism setup """
@@ -1309,7 +1345,7 @@ class schism_station_output:
 			
 			line=lines[2]
 			num,txt=line.split('!')[:2]
-			self.coords=np.asarray([np.float(i) for i in num.split(' ')[1:4]])
+			self.coords=np.asarray([float(i) for i in num.split(' ')[1:4]])
 			self.stations=[txt.split(' ')[1]]
 			for line in lines[3:]:
 				num,txt=line.replace('\n','').split('!')
@@ -1364,14 +1400,12 @@ class schism_station_output:
 		plt.tight_layout()
 
 class schism_outputs_by_variable():
-   def __init__(self,ncdir='./outputs/',max_stack=-1,varlist=None):
+   def __init__(self,ncdir='./outputs/',min_stack=0,max_stack=-1,varlist=None):
       """ output class for xarray access to schism  by variable output
 			schism_outputs_by_variable(ncdir='./outputs/',max_stack=-1). ncdir is netcdf output directory max_stack is the highest number of stacks(this is identical with the highest stack_number only if all stacks from _1 in the folder). If varfiles==None, If varfiles=[out2d] only those files with a matching pattern will be taken"""
       self.ncdir=ncdir
 
       #from IPython import embed; embed()
-	  
-	  
       nr_nc0=np.sort(glob.glob('{:s}/out2d*.nc'.format(ncdir)))[0].split('/')[-1].split('_')[-1]
       
       varfiles=glob.glob('{:s}*_{:s}'.format(ncdir,nr_nc0))
@@ -1384,7 +1418,15 @@ class schism_outputs_by_variable():
       self.ds=dict.fromkeys(varfiles)
       for key in files.keys():
          files[key]=np.hstack([np.sort(glob.glob('{:s}{:s}_{:s}.nc'.format(ncdir,key,'?'*iorder))) for iorder in range(1,6)])
-         self.ds[key]=xr.open_mfdataset(files[key][:max_stack])
+         if key==list(files.keys())[0]:
+              if (min_stack>0):
+                  min_stack=np.where([str(min_stack) in file for file in files[key]])[0][0]
+              if (max_stack>-1):
+                  max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
+         #if key==list(files.keys())[0] and (max_stack>-1):
+         #     max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
+         #self.ds[key]=xr.open_mfdataset(files[key][:max_stack])
+         self.ds[key]=xr.concat([xr.open_dataset(file).chunk() for file in files[key][:max_stack]],dim='time')
 	  
       exclude=[]#exclude=['time','SCHISM_hgrid', 'SCHISM_hgrid_face_nodes', 'SCHISM_hgrid_edge_nodes', 'SCHISM_hgrid_node_x',     'SCHISM_hgrid_node_y', 'bottom_index_node', 'SCHISM_hgrid_face_x', 'SCHISM_hgrid_face_y',     'ele_bottom_index', 'SCHISM_hgrid_edge_x', 'SCHISM_hgrid_edge_y', 'edge_bottom_index',     'sigma', 'dry_value_flag', 'coordinate_system_flag', 'minimum_depth', 'sigma_h_c', 'sigma_theta_b',      'sigma_theta_f', 'sigma_maxdepth', 'Cs'] # exclude for plot selection
       self.vardict={} # variable to nc dict relations
@@ -1503,11 +1545,7 @@ if __name__ == '__main__':
     setup = schism_setup('hgrid.gr3',ll_file='hgrid.gr3')
     # plot domain
     setup.plot_domain_boundaries()
-
-    #triplot(setup.x,setup.y,asarray(setup.nv)-1)
-
     show()
-
     if False:
       # read elevation boundaries
       t,e = setup.bdy_array('elev2D.th')
