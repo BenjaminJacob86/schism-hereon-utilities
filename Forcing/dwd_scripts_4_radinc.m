@@ -453,8 +453,12 @@ return
 %      jab=.10*(50.-zen)+15.
 %   endif
 
+   %quick fix BJ	
    indx=find(jab>19);
-   if(length(indx) ~=0); error('short_wave_radiation: index out of bound'); end;
+   if(length(indx) ~=0); warning('short_wave_radiation: index out of bound - auto setting max index to 19'); 
+		jab(jab>19)=19
+   end;
+   
 
    %Have to use serial mode here for differencing
    for i=1:ndim
