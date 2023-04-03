@@ -11,7 +11,7 @@ import os
 import sys
 sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
 sys.path.insert(0,'/pf/g/g260114/git/hzg/schism-hzg-utilities')
-sys.path.insert(0,'/work/gg0028/g260114/RUNS/GermanBight/GB_HR_Ballje')
+sys.path.insert(0,'/work/gg0028/g260114/RUNS/GermanBight/GB_HR_Ballje/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/RUNS/GB_template/schism-hzg-utilities/')
 
 import matplotlib
@@ -49,9 +49,8 @@ print('starting program')
 #t1=dt.datetime(2018,12,31)
 #dt_output=3600    # timestep for output [seconds]
 
-t0=dt.datetime(2019,2,15,1,0,0)		#  time start WK
-#t1=dt.datetime(2019,2,18)		#  time end WK # bis hier geht
-t1=dt.datetime(2019,6,1)		#  time end WK
+t0=dt.datetime(2020,7,2)		#  time start WK
+t1=dt.datetime(2020,7,4)		#  time end WK
 #dt_output=86400    # timestep for output [seconds] take as input
 dt_output=0         # if zero take same temporal resolution as input data
 					# tine is counted from t0 on
@@ -64,10 +63,11 @@ schismdir=schismdir[:schismdir.rindex('/')]+'/' #assume
 #schismdir='/gpfs/work/jacobb/data/RUNS/BlackSea/BS4routine/'
 frocingtype='cmems'#'gcoast'
 #frcdir='/gpfs/work/jacobb/data/RUNS/BlackSea/BS4routine/download_cmems/blacksea/' # forcing directory WKi
-frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/ 																				  # with data downloaded by	download_med_fc.sh			
-frcdir=os.getcwd()+'/data/my.cmems-du.eu/Core/BLKSEA_MULTIYEAR_PHY_007_004/all/'
-frcdir=os.getcwd()+'/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/'
-frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/   
+#frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/ 																				  # with data downloaded by	download_med_fc.sh		#
+#frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/   
+
+schismdir=rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/'
+frcdir='/gpfs/work/jacobb/data/SETUPS/GB_template/forcing//download_cmems_GB/'
 plot_bd=True # make control plots of boundaries
 
 #openbd_segs=[0,8]  # open boundary segments Determine from bctides in boundary configuration corresponding to
@@ -108,7 +108,6 @@ if frocingtype=='cmems':
 	salt_pattern='PSAL'
 	uv_pattern='RFVL'	
 ########################################################################
-
 
 	
 
@@ -170,36 +169,123 @@ def get_4neighbours(x2d,y2d,bdx,bdy):
 # das gibt richtiges	
 def bilin3(x,y,v,indsx,indsy,bdx,bdy,calcw=True,w1=None,w2=None,w3=None,w4=None):
 	""" bilinear interpolation """
-	interped=[]
+	#interped=[]
+	npbd=len(bdx)
+	interped=np.zeros(npbd)#[]
+	
 	if (calcw==True):
-		div_dxdy=[]
-		dxi=[]
-		dyi=[]
+		dtype=np.float64
+		div_dxdy=np.zeros(npbd,dtype)#[]
+		dxi=np.zeros((npbd,2),dtype)#[]
+		dyi=np.zeros((npbd,2),dtype)#[]
 		for i in range(len(indsx)):
 			indx=indsx[i]
 			indy=indsy[i]
-			div_dxdy.append(1/((x[indx[-1,-1],indy[-1,1]]-x[indx[0,0],indy[0,0]])*(y[indx[-1,-1],indy[-1,1]]-y[indx[0,0],indy[0,0]])))
-			dxi.append([x[indx[-1,-1],indy[-1,1]]-bdx[i],bdx[i]-x[indx[0,0],indy[0,0]]])
-			dyi.append(np.asarray(([y[indx[-1,-1],indy[-1,-1]]-bdy[i],bdy[i]-y[indx[0,0],indy[0,0]]])))
-			interped.append(div_dxdy[i]*np.matmul(dxi[i],np.matmul(v[indx,indy].T,dyi[i])))	
-			# rewire such that no transpose needed
-		dxi=np.asarray(dxi)
-		dyi=np.asarray(dyi)
 
-		div_dxdy=np.asarray(div_dxdy)
-		w1=div_dxdy*dxi[:,0]*dyi[:,0] 
-		w2=div_dxdy*dxi[:,0]*dyi[:,1]
-		w3=div_dxdy*dxi[:,1]*dyi[:,0]
+			div_dxdy[i]=(1/((x[indx[-1,-1],indy[-1,1]]-x[indx[0,0],indy[0,0]])*(y[indx[-1,-1],indy[-1,1]]-y[indx[0,0],indy[0,0]])))
+
+			dxi[i]=([x[indx[-1,-1],indy[-1,1]]-bdx[i],bdx[i]-x[indx[0,0],indy[0,0]]])
+			
+			dyi[i]=(np.asarray(([y[indx[-1,-1],indy[-1,-1]]-bdy[i],bdy[i]-y[indx[0,0],indy[0,0]]])))
+			
+			interped[i]=(div_dxdy[i]*np.matmul(dyi[i],np.matmul(v[indx,indy],dxi[i])))	
+			
+			
+		# rewire such that no transpose needed
+		
+		# wrong order
+
+		# above weights are shifte from what I thougt	
+		#control
+		#indx,indy=indsx[0],indsy[0]
+		#try making float 64 yes incrases accuracy to -15, however matmul above manages exact agreement, model error shuld anyways be larger than float32 accuracy
+		#x=np.asarray(x,np.float64)
+		#y=np.asarray(y,np.float64)
+		#v=np.asarray(v,np.float64)
+		
+		# check bilin interp 
+		#dx=np.abs((x[indx,indy]-bdx[0]))
+		#dxs=dx.sum(axis=1)
+		#wx=1-dx/dxs
+		#(wx*x[indx,indy]).sum(axis=1)[0]-bdx[0]
+		#dy=np.abs((y[indx,indy]-bdy[0]))
+		#dys=dy.sum(axis=0)
+		#wy=1-dy/dys
+		#W=wx*wy
+		#(W*(x[indx,indy])).sum() -bdx[0]
+		#(W*(x[indx,indy])).sum() -a
+		
+		
+		#W1 W2   +_+
+		#W3 W4   + +
+		
+		# shift calc results o above
+		w1=div_dxdy* dxi[:,0]*dyi[:,0] 
+		w2=div_dxdy*dxi[:,1]*dyi[:,0]
+		w3=div_dxdy*dxi[:,0]*dyi[:,1]
 		w4=div_dxdy*dxi[:,1]*dyi[:,1]
 
+		#q=v[indx,indy]
+		#a=w1[i] * q[0,0] + w2[i] * q[0,1] +w3[i] *q[1,0] +w4[i]*q[1,1]
+#nterped[i]=(div_dxdy[i]*np.matmul(dyi[i],np.matmul(v[indx,indy],dxi[i])))	
 		return interped,w1,w2,w3,w4
 	else: #use precalculated
-		return w1*v[indsx,indsy][:,0,1]+w2*v[indsx,indsy][:,1,0] + w3 * v[indsx,indsy][:,0,0] + w4 * v[indsx,indsy][:,1,1]
-
+		#return w1*v[indsx,indsy][:,0,1]+w2*v[indsx,indsy][:,1,0] + w3 * v[indsx,indsy][:,0,0] + w4 * v[indsx,indsy][:,1,1]
+		return w1*v[indsx,indsy][:,0,0]+w2*v[indsx,indsy][:,0,1] + w3 * v[indsx,indsy][:,1,0] + w4 * v[indsx,indsy][:,1,1]
+		
+		
+#def bilin3UseWeights(x,y,v,indsx,indsy,bdx,bdy,w1=None,w2=None,w3=None,w4=None):
+#	""" bilinear interpolation """
+#	return w1*v[indsx,indsy][:,0,0]+w2*v[indsx,indsy][:,0,1] + w3 * v[indsx,indsy][:,1,0] + w4 * v[indsx,indsy][:,1,1]
+#
+# faster to do the subindexing once and save
 def bilin3UseWeights(x,y,v,indsx,indsy,bdx,bdy,w1=None,w2=None,w3=None,w4=None):
 	""" bilinear interpolation """
-	return w1*v[indsx,indsy][:,0,1]+w2*v[indsx,indsy][:,1,0] + w3 * v[indsx,indsy][:,0,0] + w4 * v[indsx,indsy][:,1,1]
-		
+	q=v[indsx,indsy]
+	return w1*q[:,0,0]+w2*q[:,0,1] + w3 * q[:,1,0] + w4 * q[:,1,1]
+
+# fastest version so far:
+def bilin3UseWeights_stack(x,y,v,indsx,indsy,Wstack):
+	""" bilinear interpolation """
+	q=v[indsx,indsy]
+	#return np.multiply(q,Wstack).sum(axis=(1,2))
+	return np.einsum('ijk,ijk->i', q, Wstack) # encode above in einstein summation	
+	
+
+	
+# depth extraploate weights from  bilin3	
+## try speeding up
+## do over all depths
+#def bilin3depth(x,y,v,indsx,indsy,bdx,bdy,calcw=True,w1=None,w2=None,w3=None,w4=None):
+#	""" bilinear interpolation """
+#	interped=[]
+#	if (calcw==True):
+#		div_dxdy=[]
+#		dxi=[]
+#		dyi=[]
+#		for i in range(len(indsx)):
+#			indx=indsx[i]
+#			indy=indsy[i]
+#			div_dxdy.append(1/((x[indx[-1,-1],indy[-1,1]]-x[indx[0,0],indy[0,0]])*(y[indx[-1,-1],indy[-1,1]]-y[indx[0,0],indy[0,0]])))
+#			dxi.append([x[indx[-1,-1],indy[-1,1]]-bdx[i],bdx[i]-x[indx[0,0],indy[0,0]]])
+#			dyi.append(np.asarray(([y[indx[-1,-1],indy[-1,-1]]-bdy[i],bdy[i]-y[indx[0,0],indy[0,0]]])))
+#			interped.append(div_dxdy[i]*np.matmul(dxi[i],np.matmul(v[indx,indy].T,dyi[i])))	
+#			# rewire such that no transpose needed
+#		dxi=np.asarray(dxi)
+#		dyi=np.asarray(dyi)
+#
+#		# old
+#		div_dxdy=np.asarray(div_dxdy)
+#		w1=div_dxdy*dxi[:,0]*dyi[:,0] 
+#		w2=div_dxdy*dxi[:,0]*dyi[:,1]
+#		w3=div_dxdy*dxi[:,1]*dyi[:,0]
+#		w4=div_dxdy*dxi[:,1]*dyi[:,1]
+#		
+#		return interped,w1,w2,w3,w4
+#	else: #use precalculated
+#		return w1*v[:,indsx,indsy][:,:,0,1]+w2*v[:,indsx,indsy][:,:,1,0] + w3 * v[:,indsx,indsy][:,:,0,0] + w4 * v[:,indsx,indsy][:,:,1,1]	
+
+
 # try speeding up
 # do over all depths
 def bilin3depth(x,y,v,indsx,indsy,bdx,bdy,calcw=True,w1=None,w2=None,w3=None,w4=None):
@@ -220,26 +306,37 @@ def bilin3depth(x,y,v,indsx,indsy,bdx,bdy,calcw=True,w1=None,w2=None,w3=None,w4=
 		dxi=np.asarray(dxi)
 		dyi=np.asarray(dyi)
 
+		# old
 		div_dxdy=np.asarray(div_dxdy)
 		w1=div_dxdy*dxi[:,0]*dyi[:,0] 
 		w2=div_dxdy*dxi[:,0]*dyi[:,1]
 		w3=div_dxdy*dxi[:,1]*dyi[:,0]
 		w4=div_dxdy*dxi[:,1]*dyi[:,1]
-
+		
 		return interped,w1,w2,w3,w4
 	else: #use precalculated
 		return w1*v[:,indsx,indsy][:,:,0,1]+w2*v[:,indsx,indsy][:,:,1,0] + w3 * v[:,indsx,indsy][:,:,0,0] + w4 * v[:,indsx,indsy][:,:,1,1]	
-
+	
+## pure calculation function avoiding if check		
+#def bilin3depthUseWeights(x,y,v,indsx,indsy,bdx,bdy,w1=None,w2=None,w3=None,w4=None):
+#	""" bilinear interpolation """
+#	return w1*v[:,indsx,indsy][:,:,0,1]+w2*v[:,indsx,indsy][:,:,1,0] + w3 * v[:,indsx,indsy][:,:,0,0] + w4 * v[:,indsx,indsy][:,:,1,1]			
+#		
 # pure calculation function avoiding if check		
 def bilin3depthUseWeights(x,y,v,indsx,indsy,bdx,bdy,w1=None,w2=None,w3=None,w4=None):
 	""" bilinear interpolation """
-	return w1*v[:,indsx,indsy][:,:,0,1]+w2*v[:,indsx,indsy][:,:,1,0] + w3 * v[:,indsx,indsy][:,:,0,0] + w4 * v[:,indsx,indsy][:,:,1,1]			
-		
+	q=v[:,indsx,indsy]
+	return w1*q[:,:,0,0]+w2*q[:,:,0,1] + w3 * q[:,:,1,0] + w4 * q[:,:,1,1]					
+
+# in 2D case einstein summation seems faster, however not for depth, maybe to many implicit loops with indices	
+# pure calculation function avoiding if check		
+def bilin3depthUseWeights_stack(x,y,v,indsx,indsy,WstackD):
+	""" bilinear interpolation """
+	q=v[:,indsx,indsy]
+	return np.einsum('ijkl,ijkl->ij', q, WstackD) # encode above in einstein summation	
 #############################################################
 
 ############## actual Program start ############################################
-
-
 
 
 ############## load schism info ###############
@@ -268,8 +365,6 @@ bdlat=lat[ibd]
 depths=np.asarray(s.depths)
 bdcoords=np.asarray(list(zip(bdlon,bdlat)))
 
-
-	
 
 timetag=(str(t0)+'_'+str(t1)).replace(' ','_').replace('-','')
 day_prev_year=t0-dt.timedelta(days=1)
@@ -465,10 +560,52 @@ bdy=bdlat
 x=lon2d
 y=lat2d
 		
-
 # check
 #data=ds['temp']['votemper'][0,0,:].values
-#vint=bilin(x,y,data,indsx,indsy,bdx,bdy,div_dxdy,dxi,dyi)		
+
+#data=np.asarray(x2d,np.float64)
+#x=np.asarray(x,np.float64)
+#y=np.asarray(y,np.float64)
+#indsx,indsy=get_4neighbours(lon2d,lat2d,bdlon,bdlat)		
+#tt0=time.time()
+#for i in range(30):
+#	vint,bw1,bw2,bw3,bw4=bilin3(x,y,data,indsx,indsy,bdx,bdy,True) #get bilinear weights
+#dt0=time.time()-tt0
+#
+#tt0=time.time()
+#for i in range(30):
+#	vint2=bilin3(x,y,data,indsx,indsy,bdx,bdy,False,w1=bw1,w2=bw2,w3=bw3,w4=bw4) #get bilinear weights
+#dt1=time.time()-tt0
+#
+#tt0=time.time()
+#for i in range(30):
+#	vint3=bilin3UseWeights(x,y,data,indsx,indsy,bdx,bdy,w1=bw1,w2=bw2,w3=bw3,w4=bw4)
+#dt2=time.time()-tt0
+#
+#tt0=time.time()
+#for i in range(30):
+#	vint4=bilin3UseWeightsb(x,y,data,indsx,indsy,bdx,bdy,w1=bw1,w2=bw2,w3=bw3,w4=bw4)
+#dt3=time.time()-tt0
+
+
+#tt0=time.time()
+#for i in range(350):
+#	vint3=bilin3UseWeights(x,y,data,indsx,indsy,bdx,bdy,w1=bw1,w2=bw2,w3=bw3,w4=bw4)
+#dt2=time.time()-tt0
+#
+#tt0=time.time()
+#for i in range(350):
+#	vint4=bilin3UseWeights_stack(x,y,data,indsx,indsy,Wstack)
+#dt3=time.time()-tt0
+
+#
+#
+#vint3[:5]-vint4[:5]
+#vint5[:5]-vint4[:5]
+#
+#
+#np.dot(q,Wstack)
+#np.cross(Wstack,q)
 #
 #ivalid=np.where(np.isnan(vint)==False)
 #bdtree=cKDTree(bdcoords[ivalid])
@@ -487,17 +624,24 @@ y=lat2d
 #
 
 ################# overwrite nan indices with closest non-nan ones
-
+# replaces entire 4 neighbour set
 data=ds['temp'][name_temp][0,0,:].values
-		
 # get inverse distance weights for bilinear interpolation
-# replace non from forcing grid with it nn non-nan
+# replace nan from forcing grid with it nn non-nan
 indsx,indsy=get_4neighbours(lon2d,lat2d,bdlon,bdlat)		
 vint,bw1,bw2,bw3,bw4=bilin3(x,y,data,indsx,indsy,bdx,bdy,True) #get bilinear weights
 ivalid=np.where(np.isnan(vint)==False)
 bdtree=cKDTree(bdcoords[ivalid])
 inan=np.isnan(vint)
 getfrom=bdtree.query(bdcoords[inan])[1]  #excahnge with b1 - bw4
+
+# position switch
+#plt.figure()
+#ds['temp'][name_temp][0,0,:].plot()
+#s.plot_domain_boundaries(latlon=True,append=True)
+#plt.plot(bdx[inan],bdy[inan],'k+')
+#plt.plot(x2d,y2d,'k.')
+
 for var in indsx,indsy,bw1,bw2,bw3,bw4:
 	for ifrom,ito in zip(ivalid[0][getfrom],np.where(inan)[0]):
 		var[ito]=var[ifrom]
@@ -512,9 +656,34 @@ bw2D=np.tile(bw2,(ndepth,1))
 bw3D=np.tile(bw3,(ndepth,1))
 bw4D=np.tile(bw4,(ndepth,1))
 
+# stack weights for faster interpolation function
+Wstack=np.zeros((len(bdx),2,2))
+Wstack[:,0,0]=bw1
+Wstack[:,0,1]=bw2
+Wstack[:,1,0]=bw3
+Wstack[:,1,1]=bw4
+
+
+
+
+# stack weights for alernative interpolation function -- seems to get slower opposed to the 2d case
+#WstackD=np.tile(Wstack,(ndepth,1,1,1))
+#datain=np.tile(x2d,(ndepth,1,1))
+#indsx,indsy=get_4neighbours(lon2d,lat2d,bdlon,bdlat)		
+#tt0=time.time()
+#for i in range(30):
+#	vint4=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D)
+#dt0=time.time()-tt0
+#
+#tt0=time.time()
+#for i in range(30):
+#	vint5=bilin3depthUseWeights_stack(x,y,datain,indsx,indsy,WstackD)
+#dt1=time.time()-tt0
+
+
+
 		
 ### same grid
-
 if dt_output == 0:
 	#dt_output=(np.diff(ds['ssh']['time'][:2])/np.timedelta64(1,'s'))[0]
 	dt_output=np.timedelta64((np.diff(ds['ssh']['time'][:2])[0]))/np.timedelta64(1,'s')
@@ -527,13 +696,25 @@ nnodes=len(d)
 
 # initialize output fields
 # input depths
+# alt
+#bdprofile={
+#'ssh':np.zeros((nt,nnodes,1,1)),
+#'salt':np.zeros((nt,nnodes,ndepth)),
+#'temp':np.zeros((nt,nnodes,ndepth)),
+#name_u:np.zeros((nt,nnodes,ndepth)),
+#name_v:np.zeros((nt,nnodes,ndepth))
+#}
+#neu -bypass transponate in loop# later transponate once to get above layout for interpolation to schism profiles
 bdprofile={
 'ssh':np.zeros((nt,nnodes,1,1)),
-'salt':np.zeros((nt,nnodes,ndepth)),
-'temp':np.zeros((nt,nnodes,ndepth)),
-name_u:np.zeros((nt,nnodes,ndepth)),
-name_v:np.zeros((nt,nnodes,ndepth))
+'salt':np.zeros((nt,ndepth,nnodes)),
+'temp':np.zeros((nt,ndepth,nnodes)),
+name_u:np.zeros((nt,ndepth,nnodes)),
+name_v:np.zeros((nt,ndepth,nnodes))
 }
+
+
+
 # schism depth
 bdprofiles2={
 'ssh':np.zeros((nt,nnodes,1,1)),
@@ -586,6 +767,43 @@ ws3D={name_u: np.tile(ws3[name_u],(ndepth,1)),name_v: np.tile(ws3[name_v],(ndept
 ws4D={name_u: np.tile(ws4[name_u],(ndepth,1)),name_v: np.tile(ws4[name_v],(ndepth,1))}
 
 
+## Extract Profiles from forcing and time interpolate
+#for ti in range(nt):
+#	t=t0+ti*deltaT
+#	#print(ti)
+#	if ti%24==0:
+#		print('doing day ' + str(ti/24))
+#
+#	#datets working with gcoast but not amm15 therefore convert to string to fit both :-(	
+#	# probbly makes things slower
+#	# ssh
+#	tt=t.strftime("%Y-%m-%dT%H:%M:%S")
+#	
+#	datain=ds['ssh'].interp(time=tt)[name_ssh].load().values
+#	#bdprofiles2['ssh'][ti,:,0,0]=bilin3(x,y,datain,indsx,indsy,bdx,bdy,False,bw1,bw2,bw3,bw4)
+#	#bdprofiles2['ssh'][ti,:,0,0]=bilin3UseWeights(x,y,datain,indsx,indsy,bdx,bdy,bw1,bw2,bw3,bw4)
+#	bdprofiles2['ssh'][ti,:,0,0]=bilin3UseWeights_stack(x,y,datain,indsx,indsy,Wstack)
+#
+#	# temp	
+#	datain=ds['temp'].interp(time=tt)[name_temp].load().values
+#	#bdprofile['temp'][ti,:]=bilin3depth(x,y,datain,indsx,indsy,bdx,bdy,calcw=False,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+#	bdprofile['temp'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+#	ds['temp'].interp(time=tt)[name_temp].load().values
+#	
+#	#salt
+#	datain=ds['salt'].interp(time=tt)[name_salt].load().values
+#	#bdprofile['salt'][ti,:]=bilin3depth(x,y,datain,indsx,indsy,bdx,bdy,calcw=False,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+#	bdprofile['salt'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+#	
+#	# uv
+#	for name in name_u,name_v:   # faster doing tim einterp once in xarray
+#		#data0s[name]=(w1*ds[key][name][i0,:]+w2*ds[key][name][i1,:]).values # time interp in xarray
+#		datain=ds['uv'].interp(time=tt)[name].load().values
+#		#bdprofile[name][ti,:]=bilin3depth(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,False,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
+#		bdprofile[name][ti,:]=bilin3depthUseWeights(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
+
+
+
 # Extract Profiles from forcing and time interpolate
 for ti in range(nt):
 	t=t0+ti*deltaT
@@ -600,28 +818,27 @@ for ti in range(nt):
 	
 	datain=ds['ssh'].interp(time=tt)[name_ssh].load().values
 	#bdprofiles2['ssh'][ti,:,0,0]=bilin3(x,y,datain,indsx,indsy,bdx,bdy,False,bw1,bw2,bw3,bw4)
-	bdprofiles2['ssh'][ti,:,0,0]=bilin3UseWeights(x,y,datain,indsx,indsy,bdx,bdy,bw1,bw2,bw3,bw4)
-	
+	#bdprofiles2['ssh'][ti,:,0,0]=bilin3UseWeights(x,y,datain,indsx,indsy,bdx,bdy,bw1,bw2,bw3,bw4)
+	bdprofiles2['ssh'][ti,:,0,0]=bilin3UseWeights_stack(x,y,datain,indsx,indsy,Wstack)
+
 	# temp	
 	datain=ds['temp'].interp(time=tt)[name_temp].load().values
 	#bdprofile['temp'][ti,:]=bilin3depth(x,y,datain,indsx,indsy,bdx,bdy,calcw=False,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
-	bdprofile['temp'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+	bdprofile['temp'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D)
+	ds['temp'].interp(time=tt)[name_temp].load().values
 	
 	#salt
 	datain=ds['salt'].interp(time=tt)[name_salt].load().values
 	#bdprofile['salt'][ti,:]=bilin3depth(x,y,datain,indsx,indsy,bdx,bdy,calcw=False,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
-	bdprofile['salt'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D).T
+	bdprofile['salt'][ti,:]=bilin3depthUseWeights(x,y,datain,indsx,indsy,bdx,bdy,w1=bw1D,w2=bw2D,w3=bw3D,w4=bw4D)
 	
 	# uv
 	for name in name_u,name_v:   # faster doing tim einterp once in xarray
 		#data0s[name]=(w1*ds[key][name][i0,:]+w2*ds[key][name][i1,:]).values # time interp in xarray
 		datain=ds['uv'].interp(time=tt)[name].load().values
 		#bdprofile[name][ti,:]=bilin3depth(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,False,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
-		bdprofile[name][ti,:]=bilin3depthUseWeights(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
-
-
-
-
+		bdprofile[name][ti,:]=bilin3depthUseWeights(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,ws1D[name],ws2D[name],ws3D[name],ws4D[name])
+		
 
 ###################################
 ### get out nans in vertical levels # add BJ 14.02.2022
@@ -633,6 +850,13 @@ for name in 'salt','temp',name_u, name_v:
 		inan=np.isnan(bdprofile[name][:,:,idep])
 		bdprofile[name][:,:,idep][inan]=bdprofile[name][:,:,idep-1][inan]
 ################# vertical interpolation to wanted levels for schism #####################################################
+
+# transpose again		
+for key in list(bdprofile.keys())[1:]:
+	key
+	bdprofile[key]=bdprofile[key].swapaxes(1,2)
+
+
 
 if len(openbd_segs)>0:
 	frcbdnodes=[]
