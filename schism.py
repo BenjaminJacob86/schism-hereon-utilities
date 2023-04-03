@@ -768,21 +768,20 @@ class schism_setup(object):
   def plotAtnodes(self,nodevalues,cmap=plt.cm.viridis,mask=None,latlon=True,extend='neither',ax=None):
       """
       visualisation routine plotting triangles at nodes (quads are splitted)
+	  ph,ch,ax=plotAtnodes(self,nodevalues,cmap=plt.cm.viridis,mask=None,latlon=True,extend='neither',ax=None)
       """
 	        # cartopy projection and features
       if ax == None: # else ax is given for eg sub axe üöots
-        ax = plt.axes()
+        ax = plt.gca() #.axes()
 	  
       if latlon==True:	        
         ph=ax.tripcolor(self.lon,self.lat,self.nvplt,nodevalues,shading='flat',mask=mask,cmap=cmap)
       else:	              
         ph=ax.tripcolor(self.x,self.y,self.nvplt,nodevalues,shading='flat',mask=mask,cmap=cmap)	  
-      #ch=plt.colorbar(ph,extend=extend)	
-      # adjust height of colorbar to fit plot axes
       divider = make_axes_locatable(ax)
       cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=plt.Axes)
       ch=plt.colorbar(ph,cax=cax,extend=extend)
-
+      plt.sca(ax)
       return ph,ch,ax
 
   def plotAtelems(self,values,cmap=plt.cm.viridis,mask=None,latlon=True,extend='neither'):
@@ -863,8 +862,15 @@ class schism_setup(object):
 
 	  
       # scale colorbar to 1 and 99% quantile
-      vmin=np.round(np.quantile(values,0.01),1)
-      vmax=np.round(np.quantile(values,0.99),1)
+      #from IPython import embed; embed()
+      inan=np.isnan(values)
+      if type(values)==np.ma.masked_array:
+          inan=inan | inan.mask			
+		  #vmin=np.round(np.nanquantile(values[],0.01),1)
+		  #vmax=np.round(np.nanquantile(values,0.99),1)
+	  #else:
+      vmin=np.round(np.nanquantile(values[~inan],0.01),1)
+      vmax=np.round(np.nanquantile(values[~inan],0.99),1)
       ph.set_clim((vmin,vmax))
       
       # Set tick labels

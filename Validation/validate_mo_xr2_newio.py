@@ -32,6 +32,8 @@ sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/Lib/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities/Lib/')
 
+from matplotlib.dates import DateFormatter
+myFmt = DateFormatter("%m-%d")
 
 from techit import * # import latex script
 #from techit2 import * # import latex script
@@ -46,6 +48,7 @@ from schism import * # import schism functions
 # WTxm Wasser temperature at depth x m
 # WSxm Wasser Salnity  at depth x m    
 
+# try parallel?
 
 #### I have added 1 day to compensate error in falsely set param.in start date
 ## updated hard coded timesteps with automatically determined ones
@@ -56,12 +59,14 @@ mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/' 					  # myocea
 mardir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/MO/'
 
 # list of model setups to validate first setup is reference for station selections
-setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',]
+#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',]
+setupdir=['/gpfs/work/routine-ksd/schism-routine/',]
+
 #ncdir=setupdir+'/outputs01/'
 year=2017		    # currently data between 2011 and 2018				
 dtol=0.05           # distance tolerance in degree lon/lat for station selection 
 
-ncdir=[setupdir[0] + 'outputs01/'] 		  #   directory of schism nc output or 
+ncdir=[setupdir[0] + 'outputs_all/'] 		  #   directory of schism nc output or 
 #ncdir+=[setupdir[1] + 'outputs/']
 
 
@@ -73,7 +78,7 @@ setup_names=['Veg_CNTRL',] #,'GNU','ParamReset']
 
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
-outdir=setupdir[0]+'mo_valid/'	   # output directory where images will be stored
+outdir=setupdir[0]+'mo_valid2/'	   # output directory where images will be stored
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
 Tmax=45
@@ -82,12 +87,12 @@ add_amm15=False  											# add plot comparing with Amm15 | Amm15 profiles
 use_station_in=[False,]					  # True: use station output False: extract from netcdf (slow)
 put_pics_to_texdoc=True    										# images will be put in tex document
 latexname='HRBallje.tex' #'GB1_5Ems_marnet.tex'										# in alphanumerical order 
-latextitle='HRBallje 2011 vs Marnet' #'GB 2011 + FW 1.5EMS  in EFWS vs Marnet'
+latextitle='HRBallje 2017 vs Marnet' #'GB 2011 + FW 1.5EMS  in EFWS vs Marnet'
 latextext= str(year) + ' validation against Marnet'
 
 # reduce color scales to qunatile rnage , bypass outliers affectiong scale
 quantile_range=True
-quantiles=[0.1, 0.99]
+quantiles=[0.01, 0.99]
 
 ## image
 def set_fontsize(fac=1): 
@@ -277,7 +282,6 @@ for i,setup_name in enumerate(setup_names):
 						
 						stations['MO'][name]={'time':dates,'T':temp,'S':salt,'D':ncs['DEPH'][0,:]}
 						
-						
 						if i==0:
 							names.append(name)
 							stations['coord'].append(coord)
@@ -360,7 +364,7 @@ for i,setup_name in enumerate(setup_names):
 
 
 
-modeldt=[np.diff(stations[setup_name]['time'][:2])/np.timedelta64(1,'s') for setup_name in setup_names]
+#modeldt=[np.diff(stations[setup_name]['time'][:2])/np.timedelta64(1,'s') for setup_name in setup_names]
 
 ## load data from schism next neighbours to TG statsions
 #modeldt=[]
@@ -446,8 +450,7 @@ plt.savefig(outdir+'0_MarnetStations.png',dpi=300)
 
 # Plot Mar net stations
 # monthly   - salt
-from matplotlib.dates import DateFormatter
-myFmt = DateFormatter("%m-%d")
+
 
 
 def plot_profile_comp(t_data,data,t_mod,data_mod,setup_name,tag,label='Temperature',unit='[°C]'):
@@ -460,7 +463,6 @@ def plot_profile_comp(t_data,data,t_mod,data_mod,setup_name,tag,label='Temperatu
 	plt.plot(t_data[0,:],data[0,:])#sampmar:nhours:sampmar
 	plt.plot(t_mod,data_mod[:,-1])
 	plt.legend((tag,setup_name),loc='upper center',ncol=2, bbox_to_anchor=(0.5, 1.5),frameon=False)	
-	#plt.ylabel(' '.join((label[:4]+'_{surf}',unit)))
 	plt.ylabel(' '.join((label[:9]+'surf',unit)))
 	plt.tick_params(labelbottom=False)
 	plt.xlim((t_mod[0,0],t_mod[-1,0]))
@@ -485,17 +487,32 @@ def vert_interp(zs,z_mod,data):
 	nz=z_mod.shape[-1]
 	intp_data=np.ones((z_mod.shape[0],len(zs)))*np.nan
 	depths=np.ones((z_mod.shape[0],len(zs)))*np.nan
+	# convert depths positive downard
 	
+	if (zs[:]>0).max():
+		print('warning expecting data z values < 0 applying minus')
+		zs=-zs
 	for iz,zi in enumerate(zs):
 		if (not np.ma.is_masked(zi)) and (zi <=0):
-			diffs=zi+z_mod
-			ibelow=(diffs<0).sum(axis=1)-1
+			# positive dpeths values 
+			#diffs=np.abs(zi)+z_mod
+			#ibelow=(diffs<0).sum(axis=1)-1
+			#iabove=ibelow+1-(ibelow+1==nz)  # use 
+
+			diffs=zi-z_mod
+			ibelow=(diffs>0).sum(axis=1)-1
 			iabove=ibelow+1-(ibelow+1==nz)  # use 
-			diffs[range(len(ibelow)),ibelow]
-			d1=np.abs(z_mod[range(len(iabove)),iabove]+zi)
-			d2=np.abs(-z_mod[range(len(iabove)),ibelow]-zi)
-			w1=1/d1/(1/d1+1/d2)
-			w2=1/d2/(1/d1+1/d2)
+			
+			#diffs[range(len(ibelow)),ibelow]
+			#d1=np.abs(z_mod[range(len(iabove)),iabove]+zi) # oppsing signs
+			#d2=np.abs(-z_mod[range(len(iabove)),ibelow]-zi)
+			d1=np.abs(z_mod[range(len(iabove)),iabove]-zi) # oppsing signs
+			d2=np.abs(-z_mod[range(len(iabove)),ibelow]+zi)
+			#w1a=1/d1/(1/d1+1/d2)
+			#w2a=1/d2/(1/d1+1/d2)
+			w1=1-d1/(d1+d2)
+			w2=1-w1
+			
 			depths[:,iz]=w1*z_mod[range(len(iabove)),iabove]+w2*z_mod[range(len(iabove)),ibelow]
 			intp_data[:,iz]=w1*data[range(len(iabove)),iabove]+w2*data[range(len(iabove)),ibelow]
 	
@@ -511,24 +528,26 @@ if doplots:
 		for i,tag in enumerate(names):
 			print(tag)
 
-			zs=-stations['MO'][tag]['D']
+			#zs=-stations['MO'][tag]['D']
+			zs=stations['MO'][tag]['D']
 			#salinity data available  at mooring
 			obs_time=stations['MO'][tag]['time'] 
 			mod_time=stations[setup_name]['time']
-			#data_inds=((mod_time[0] <=obs_time) & (mod_time[-1] >=obs_time ))
-			data_inds=((mod_time[0] < obs_time) & (mod_time[-1] > obs_time )) 
+			data_inds=((mod_time[0] <=obs_time) & (mod_time[-1] >=obs_time ))
+			#data_inds=((mod_time[0] <= obs_time) & (mod_time[-1] >= obs_time )) 
 			obs_time=obs_time[data_inds]
 			
 			depth=stations['MO'][tag]['D']
 			z_data,t_data=np.meshgrid(-depth,obs_time)
 			
+			#time interp
 			#inds=((obs_time[0] <=time) & (obs_time[-1] >=time )) # overlap
 			# select model data one before and after observations for interpolation
-			inds=np.arange(np.where(mod_time < obs_time[0])[-1][0],np.where(mod_time > obs_time[-1])[0][0]+1)
+			#inds=np.arange(np.where(mod_time < obs_time[0])[-1][0],np.where(mod_time > obs_time[-1])[0][0]+1)
+			inds=np.arange(np.where(mod_time <= obs_time[0])[-1][0],np.where(mod_time >= obs_time[-1])[0][0]+1)
 			
 			t_mod=np.tile(mod_time,(nz,1)).swapaxes(0,1)[inds,:]
 			z_mod=stations[setup_name]['profiles']['zCoordinates'][inds,i,:]
-			
 			
 			# temporal interpolation times
 			ttemp=mod_time[inds]
@@ -539,10 +558,10 @@ if doplots:
 			stations[setup_name]['MO'][tag]={'time':obs_time,'T':[],'S':[],'D':depth}	
 			# salinity
 			if  np.isnan(stations['MO'][tag]['S']).min()==False:
-				plt.pause(0.1)
+				#plt.pause(0.1)
 				data=stations['MO'][tag]['S'][data_inds,:]
 				#schism	
-				
+				stations['MO'][tag]['S']=data
 				data_mod=stations[setup_name]['profiles']['salinity'][inds,i,:]
 				#z_mod=stations[setup_name]['profiles']['zCoordinates'][inds,i,:]
 				plot_profile_comp(t_data,data,t_mod,data_mod,setup_name,tag,label='Salinity',unit='[psu]')
@@ -552,15 +571,20 @@ if doplots:
 				depths,intp_data = vert_interp(zs,z_mod,data_mod)
 				# temporal interpolation
 				fintp=interp1d(tin, intp_data, axis=0)
-				stations[setup_name]['MO'][tag]['S']=fintp(tout)
+								#stations[setup_name]['MO'][tag]['S']=fintp(tout)
+				interpolated=fintp(tout)
+				if len(stations['MO'][tag]['time']) != len(interpolated):
+					from IPython import embed; embed()	      
+				stations[setup_name]['MO'][tag]['S']=np.ma.masked_array(interpolated,mask=np.isnan(interpolated))
 			
 							
 			# temperature
 			#type(data)==np.ndarray or 
 			
 			if np.isnan(stations['MO'][tag]['T']).min()==False:
-				plt.pause(0.1)
+				#plt.pause(0.1)
 				data=stations['MO'][tag]['T'][data_inds,:]
+				stations['MO'][tag]['T']=data
 				data_mod=stations[setup_name]['profiles']['temperature'][inds,i,:]
 				#z_mod=stations[setup_name]['profiles']['zCoordinates'][inds,i,:]
 				plot_profile_comp(t_data,data,t_mod,data_mod,setup_name,tag,label='Temperature',unit='[°C]')
@@ -570,8 +594,17 @@ if doplots:
 				depths,intp_data = vert_interp(zs,z_mod,data_mod)
 				# temporal interpolation
 				fintp=interp1d(tin, intp_data, axis=0)
-				stations[setup_name]['MO'][tag]['T']=fintp(tout)
-			
+				interpolated=fintp(tout)
+				if len(stations['MO'][tag]['time']) != len(interpolated):
+					from IPython import embed; embed()					
+				stations[setup_name]['MO'][tag]['T']=np.ma.masked_array(interpolated,mask=np.isnan(interpolated))
+
+for tag in stations[setup_name]['MO'].keys():				
+	T=stations[setup_name]['MO'][tag]['T']
+	S=stations[setup_name]['MO'][tag]['S']
+	stations[setup_name]['MO'][tag]['T']=np.ma.masked_array(T,mask=np.isnan(T))
+	stations[setup_name]['MO'][tag]['S']=np.ma.masked_array(S,mask=np.isnan(S))
+
 			
 # statistics ---
 # interp model to data
@@ -580,82 +613,6 @@ S_schism={name:0 for name in names}
 Ztemp_schism={name:0 for name in names}
 Zsalt_schism={name:0 for name in names}
 timeout={name:0 for name in names}
-
-
-
-for i,tag in enumerate(names):
-	# interpolate to layers
-	# salt
-	Si=[]
-	Zi=[]
-	
-	zs=-stations['MO'][tag]['D']
-	zintp=
-	
-	Tintp=stations[setup_name]['time'].shape,len(zs)
-	Sintp=stations[setup_name]['time'].shape,len(zs)
-	
-	for zi in zs:
-		if np.ma.is_masked(zi):
-		
-		else:
-		
-		diffs=zi+zcor[:,i,:]
-		ibelow=(diffs<0).sum(axis=1)-1
-		iabove=ibelow+1
-		diffs[range(len(ibelow)),ibelow]
-		d1=zcor[range(len(iabove)),i,iabove]+zi
-		d2=-zcor[range(len(iabove)),i,ibelow]-zi
-		w1=1/d1/(1/d1+1/d2)
-		w2=1/d2/(1/d1+1/d2)
-		D=w1*zcor[range(len(iabove)),i,iabove]+w2*zcor[range(len(iabove)),i,ibelow]
-		Zi.append(D)
-		Si.append(w1*salt[range(len(iabove)),i,iabove]+w2*salt[range(len(iabove)),i,ibelow])
-	Zsalt_schism[tag]=np.asarray(Zi)
-	S_schism[tag]=np.asarray(Si)
-	
-	# temp
-	Ti=[]
-	Zi=[]
-	for zi in Ztemp[tag]:
-		diffs=zi+zcor[:,i,:]
-		ibelow=(diffs<0).sum(axis=1)-1
-		iabove=ibelow+1
-		diffs[range(len(ibelow)),ibelow]
-		d1=zcor[range(len(iabove)),i,iabove]+zi
-		d2=-zcor[range(len(iabove)),i,ibelow]-zi
-		w1=1/d1/(1/d1+1/d2)
-		w2=1/d2/(1/d1+1/d2)
-		D=w1*zcor[range(len(iabove)),i,iabove]+w2*zcor[range(len(iabove)),i,ibelow]
-		Zi.append(D)
-		Ti.append(w1*temp[range(len(iabove)),i,iabove]+w2*temp[range(len(iabove)),i,ibelow])
-	Ztemp_schism[tag]=np.asarray(Zi)
-	T_schism[tag]=np.asarray(Ti)
-
-	# temporal interpolation to data
-	Todates=np.asarray(obs_time[tag])
-	ilast=(Todates<=time[nt-1]).sum()
-	ifirst=(Todates<=time[0]).sum()
-	Todates=Todates[ifirst:ilast]
-
-
-	tin=(time-time[0])/(time[1]-time[0])
-	tout=(Todates-time[0])/(time[1]-time[0])# /(Todates[1]-Todates[0])
-	#tin=[(timei-time[0]).total_seconds() for timei in time]
-	#tout=[(timei-time[0]).total_seconds() for timei in Todates]
-
-	timeout[tag]=Todates	
-	fintp=interp1d(tin[:nt], S_schism[tag], axis=1)
-	S_schism[tag]=fintp(tout)
-	fintp=interp1d(tin[:nt], T_schism[tag], axis=1)
-	T_schism[tag]=fintp(tout)
-	
-	# limit data to smae range
-	# Data put Data in TIme Depth Matrix
-	T[tag]=T[tag][:,ifirst:ilast]
-	S[tag]=S[tag][:,ifirst:ilast]
-	obs_time[tag]=Todates
-	
 
 	
 # Same for amm15
@@ -734,158 +691,156 @@ if add_amm15:
 	
 # temp
 plt.figure()#(figsize=(25,33)) # full dina 4 widht in inch
-compare={tag:{'temp':np.nan,'salt':np.nan} for tag in names}
+#compare={tag:{'temp':np.nan,'salt':np.nan} for tag in names}
+compare={tag:{'T':np.nan,'S':np.nan} for tag in names}
 for key in compare.keys():
 	for key2 in compare[key].keys():
 		compare[key][key2]={tag:np.nan for tag in  ['bias','rmse','cor','std1','std2']}
-plt.clf()
-for i,tag in enumerate(names):
-	zmat=np.tile(Ztemp[tag],[len(obs_time[tag]),1]).T
-	plt.clf()
-	plt.pause(0.001)
-	plt.subplot(2,2,1)
-	if quantile_range:
-		vmin=np.quantile(np.concatenate((T_schism[tag].flatten(),T[tag].flatten())),quantiles[0])
-		vmax=np.quantile(np.concatenate((T_schism[tag].flatten(),T[tag].flatten())),quantiles[1])
-		plt.pcolor(obs_time[tag],zmat,T[tag],vmin=vmin,vmax=vmax)
-	else:
-		plt.pcolor(obs_time[tag],zmat,T[tag])
-		vmin, vmax = plt.gci().get_clim()
-	plt.colorbar()
-	plt.title(tag + ' T [deg C]')
-	plt.tick_params(labelbottom=False)
-	plt.subplot(2,2,2)
-	plt.pcolor(obs_time[tag],zmat,T_schism[tag],vmin=vmin,vmax=vmax)
-	plt.colorbar()
-	plt.title('schism' + ' T [deg C]')
-	plt.subplot(2,2,3)
-	if quantile_range:
-		vmax=np.quantile(np.abs(T[tag]-T_schism[tag]),quantiles[1])
-		vmin=-vmax
-		plt.pcolor(obs_time[tag],zmat,T[tag]-T_schism[tag],vmin=vmin,vmax=vmax,cmap='jet')
-	else:
-		plt.pcolor(obs_time[tag],zmat,T[tag]-T_schism[tag],cmap='jet')
-	plt.colorbar()
-	plt.title(tag + ' - schism')
-	plt.gcf().autofmt_xdate()
-	mng = plt.get_current_fig_manager()
-	plt.tight_layout()
-	plt.subplot(2,2,4)
-	bias=(T_schism[tag]-T[tag]).quantile95(axis=1)
-	rmse=np.sqrt(((T[tag]-T_schism[tag])**2).quantile95(axis=1))
-	R=np.asarray([np.corrcoef(T[tag][j,:],T_schism[tag][j,:])[0,1] for j in range(T[tag].shape[0])])
-	if len(T[tag][T[tag].mask==False])<1:
-		bias*=np.nan
-		rmse*=np.nan
-		R*=np.nan
-
 		
-	plt.bar(Ztemp[tag]-0.5,bias, label='bias')
-	plt.bar(Ztemp[tag]+0.5, rmse,color='g', label='RMST')
-	plt.title('total Bias/rmse {:.2f}/{:.2f}'.format((T[tag]-T_schism[tag]).quantile95(),np.sqrt( ((T[tag]-T_schism[tag])**2).quantile95()))) 
-	compare[tag]['temp']['bias']=bias		
-	compare[tag]['temp']['rmse']=rmse
-	compare[tag]['temp']['std1']=np.std(T[tag],axis=1)
-	compare[tag]['temp']['std2']=np.std(T_schism[tag],axis=1)	
-	compare[tag]['temp']['cor']=R
-	for zi,biasi,rmsei in zip(Ztemp[tag],bias,rmse):
-		plt.text(zi-0.6,biasi,'{:.2f}'.format(biasi),rotation=90 )
-		plt.text(zi+0.6,rmsei,'{:.2f}'.format(rmsei),rotation=90 )
-	plt.xlabel('depth')
-	plt.legend(('bias','rmse'),frameon=False)
-	plt.grid()
-	plt.tight_layout()
-	plt.savefig(outdir+'3_'+tag+'Temp_statistics.png',dpi=300)
-
-
-# salt
+		
 plt.clf()
 for i,tag in enumerate(names):
-	#zmat=np.tile(Zsalt[tag],[nhours-1,1]).T
-	zmat=np.tile(Zsalt[tag],[len(obs_time[tag]),1]).T
-	plt.pause(0.001)
-	plt.clf()
-	plt.subplot(2,2,1)
-	if quantile_range:
-		vmin=np.quantile(np.concatenate((S_schism[tag].flatten(),S[tag].flatten())),quantiles[0])
-		vmax=np.quantile(np.concatenate((S_schism[tag].flatten(),S[tag].flatten())),quantiles[1])
-		plt.pcolor(obs_time[tag],zmat,S[tag],vmin=vmin,vmax=vmax)
-	else:
-		plt.pcolor(obs_time[tag],zmat,S[tag])
-		vmin, vmax = plt.gci().get_clim()
-	plt.colorbar()
-	plt.title(tag+ ' S [psu]')
+
+	obs_time=stations['MO'][tag]['time']
+	D=stations['MO'][tag]['D']
+	labels=[' T [deg C]',' S [psu]']
+	for var in ['T','S']:
+		stations[setup_name]['MO'][tag]['time']
+		
+		Tobs=stations['MO'][tag][var]
+		#Sobs=stations['MO'][tag]['S']
+		
+		if (~np.isnan(Tobs)).sum()==0:
+			continue
+		Tmod=stations[setup_name]['MO'][tag][var]
+		#Smod=stations[setup_name]['MO'][tag]['S']
+
+		#Tmod.shape == Tobs.shape
+		#zmat=np.tile(stations['MO'][tag]['D'],[len(obs_time),1]).T
+		
+		plt.clf()
+		plt.pause(0.001)
+		plt.subplot(2,2,1)
+		if quantile_range:
+			#vmin=np.quantile(np.concatenate((T_schism[tag].flatten(),T[tag].flatten())),quantiles[0])
+			#vmax=np.quantile(np.concatenate((T_schism[tag].flatten(),T[tag].flatten())),quantiles[1])
+			Tmasked=np.ma.concatenate((Tmod.flatten(),Tobs.flatten()))
+			validvalues=Tmasked[Tmasked.mask==False]
+			vmin=np.quantile(validvalues,quantiles[0])
+			vmax=np.quantile(validvalues,quantiles[1])
+
+			#plt.pcolor(obs_time[tag],zmat,T[tag],vmin=vmin,vmax=vmax)
+			if (Tobs.shape)[1]==1:
+				plt.scatter(obs_time,stations['MO'][tag]['D']*np.ones(Tobs.shape),c=Tobs.T,vmin=vmin,vmax=vmax)
+			else:	
+				plt.pcolor(obs_time,stations['MO'][tag]['D'],Tobs.T,vmin=vmin,vmax=vmax)
+		else:
+			#plt.pcolor(obs_time[tag],zmat,T[tag])
+			plt.pcolor(obs_time,stations['MO'][tag]['D'],Tobs.T)
+			vmin, vmax = plt.gci().get_clim()
+		plt.colorbar()
+		plt.title(tag + ' T [deg C]')
+		plt.tick_params(labelbottom=False)
+		plt.subplot(2,2,2)
+		if (Tobs.shape)[1]==1:
+			plt.scatter(obs_time,stations['MO'][tag]['D']*np.ones(Tobs.shape),c=Tmod.T,vmin=vmin,vmax=vmax)		
+		else:
+			plt.pcolor(obs_time,stations['MO'][tag]['D'],Tmod.T,vmin=vmin,vmax=vmax)		
+		#plt.pcolor(obs_time[tag],zmat,T_schism[tag],vmin=vmin,vmax=vmax)
+		plt.colorbar()
+		plt.title('schism' + labels[var=='S']) #' T [deg C]'
+		plt.subplot(2,2,3)
+		if quantile_range:
+			#vmax=np.quantile(np.abs(T[tag]-T_schism[tag]),quantiles[1])
+			delta=Tmod-Tobs
+			vmax=np.quantile(delta[delta.mask==False],quantiles[1])
+			#np.nanquantile(np.abs(delta).flatten(),quantiles[1])
+			vmin=-vmax
+			#plt.pcolor(obs_time[tag],zmat,T[tag]-T_schism[tag],vmin=vmin,vmax=vmax,cmap='jet')
+			if (Tobs.shape)[1]==1:
+				plt.scatter(obs_time,stations['MO'][tag]['D']*np.ones(Tobs.shape),c=delta,vmin=vmin,vmax=vmax,cmap='jet')		
+			else:
+				plt.pcolor(obs_time,stations['MO'][tag]['D'],(Tmod-Tobs).T,vmin=vmin,vmax=vmax,cmap='jet')
+		else:
+			#plt.pcolor(obs_time[tag],zmat,T[tag]-T_schism[tag],cmap='jet')
+			plt.pcolor(obs_time,stations['MO'][tag]['D'],(Tmod-Tobs).T,cmap='jet')
+		plt.colorbar()
+		plt.title(tag + ' - schism')
+		plt.gcf().autofmt_xdate()
+		mng = plt.get_current_fig_manager()
+		plt.tight_layout()
+		plt.subplot(2,2,4)
+		#bias=(T_schism[tag]-T[tag]).mean(axis=1)
+		bias=(delta).mean(axis=0)
+		#rmse=np.sqrt(((T[tag]-T_schism[tag])**2).mean(axis=1))
+		rmse=np.sqrt(((delta)**2).mean(axis=0))
+		#R=np.asarray([np.corrcoef(T[tag][j,:],T_schism[tag][j,:])[0,1] for j in range(T[tag].shape[0])])
+		R=np.asarray([np.corrcoef(Tobs[:,j],Tmod[:,j])[0,1] for j in range(Tobs.shape[1])])
+		#if len(T[tag][T[tag].mask==False])<1:
+		if (type(Tobs) == np.ma.masked_array) and (len(Tobs[Tobs.mask==False])<1):
+			bias*=np.nan
+			rmse*=np.nan
+			R*=np.nan
+		
+		#plt.bar(Ztemp[tag]-0.5,bias, label='bias')
+		#plt.bar(Ztemp[tag]+0.5, rmse,color='g', label='RMST')
+		#plt.bar(D-0.5,bias, label='bias')
+		#plt.bar(D+0.5, rmse,color='g', label='RMSE')
+		#plt.bar(R+0.5, rmse,color='r', label='CR')
 	
-	plt.tick_params(labelbottom=False)
-	plt.subplot(2,2,2)
-	plt.pcolor(obs_time[tag],zmat,S_schism[tag],vmin=vmin,vmax=vmax)
-	plt.colorbar()
-	plt.title('schism'+ ' S [psu]')
-	plt.subplot(2,2,3)
-	if quantile_range:
-		vmax=np.quantile(np.abs(S[tag]-S_schism[tag]),quantiles[1])
-		vmin=-vmax
-		plt.pcolor(obs_time[tag],zmat,S[tag]-S_schism[tag],vmin=vmin,vmax=vmax,cmap='jet')
-	else:
-		plt.pcolor(obs_time[tag],zmat,S[tag]-S_schism[tag],cmap='jet')
-	plt.colorbar()
-	plt.title(tag + ' - schism')
-	plt.gcf().autofmt_xdate()
-	mng = plt.get_current_fig_manager()
-	plt.tight_layout()
-	plt.subplot(2,2,4)
-	bias=(S_schism[tag]-S[tag]).quantile95(axis=1)
-	rmse=np.sqrt(((S[tag]-S_schism[tag])**2).quantile95(axis=1))
-	plt.bar(Zsalt[tag]-0.5,bias, label='bias')
-	plt.bar(Zsalt[tag]+0.5, rmse,color='g', label='RMST')
-	plt.title('total Bias/rmse {:.2f}/{:.2f}'.format((S[tag]-S_schism[tag]).quantile95(),np.sqrt( ((S[tag]-S_schism[tag])**2).quantile95()))) 
-
-	for zi,biasi,rmsei in zip(Zsalt[tag],bias,rmse):
-		plt.text(zi-0.6,biasi,'{:.2f}'.format(biasi),rotation=90 )
-		plt.text(zi+0.6,rmsei,'{:.2f}'.format(rmsei),rotation=90 )
-	plt.xlabel('depth')
-	plt.legend(('bias','rmse'),frameon=False)
-	plt.grid()
-	plt.tight_layout()
-	plt.savefig(outdir+'3_'+tag+'Salt_statistics.png',dpi=300)
-
-	#bias=(S[tag]-S_schism[tag]).quantile95(axis=1)
-	#rmse=np.sqrt(((S[tag]-S_schism[tag])**2).quantile95(axis=1))
-	R=np.asarray([np.corrcoef(S[tag][j,:],S_schism[tag][j,:])[0,1] for j in range(S[tag].shape[0])])
-
-	if len(S[tag][S[tag].mask==False])<1:
-		bias*=np.nan
-		rmse*=np.nan
-		R*=np.nan
-	
-	
-	compare[tag]['salt']['bias']=bias		
-	compare[tag]['salt']['rmse']=rmse		
-	compare[tag]['salt']['std1']=np.std(S[tag],axis=1)
-	compare[tag]['salt']['std2']=np.std(S_schism[tag],axis=1)	
-	compare[tag]['salt']['cor']=R
+		ind=range(len(bias))
+		if (type(Tobs) == np.ma.masked_array): 
+			ind=bias.mask==False
+		
+		plt.bar(D[ind]-0.33,bias[ind],color='g', label='bias',width=0.33)
+		plt.bar(D[ind], rmse[ind],color='b', label='RMSE',width=0.33)
+		plt.bar(D[ind]+0.33, R[ind],color='k', label='COR',width=0.33)
 
 
+		#plt.title('total Bias/rmse {:.2f}/{:.2f}'.format((Tmod-Tobs).mean(),np.sqrt( ((T[tag]-T_schism[tag])**2).quantile95()))) 
+		compare[tag][var]['bias']=bias		
+		compare[tag][var]['rmse']=rmse
+		#compare[tag]['temp']['std1']=np.std(T[tag],axis=1)
+		compare[tag][var]['std1']=np.std(Tobs,axis=0)
+		#compare[tag]['temp']['std2']=np.std(T_schism[tag],axis=1)	
+		compare[tag][var]['std2']=np.std(Tmod,axis=0)	
+		compare[tag][var]['cor']=R
+		for zi,biasi,rmsei,cori in zip(D,bias,rmse,R):
+			#plt.text(zi-0.6,biasi,'{:.2f}'.format(biasi),rotation=90 )
+			#plt.text(zi+0.6,rmsei,'{:.2f}'.format(rmsei),rotation=90 )
+			plt.text(zi-0.33,biasi,'{:.2f}'.format(biasi),rotation=90 )
+			plt.text(zi,rmsei,'{:.2f}'.format(rmsei),rotation=90 )
+			plt.text(zi+0.33,cori,'{:.2f}'.format(cori),rotation=90 )
+		plt.xlabel('depth')
+		plt.legend(('bias','rmse','cor'),frameon=False)
+		plt.grid()
+		plt.tight_layout()
+		plt.savefig(outdir+'3_'+tag+var+'_statistics.png',dpi=300)		
 
 
-varname='salt'
 import pandas as pd	
-def write_table(varname,Zsalt,compare,names):
+def write_table(varname,stations,compare,names):
 	d = {'station': names}	
 	f=open(varname+'.txt','w')
 	f.write('quant\stat')
 	for tag in names:
 		f.write('\t {:8s}'.format(tag))
 	f.write('\n')	
-	zs=np.unique(np.hstack([np.asarray(Zsalt[tag]) for tag in Zsalt.keys() ]))
-	for key in compare[tag]['salt'].keys():
+	#zs=np.unique(np.hstack([np.asarray(Zsalt[tag]) for tag in Zsalt.keys() ]))
+	zs=np.unique(np.hstack([np.asarray(stations['MO'][tag]['D']) for tag in stations['MO'].keys() ]))
+	for key in compare[tag][varname].keys():
 		for zi in zs:
 			vals=[]
 			f.write(key + ' {:8.2f}'.format(zi))
 			for tag in names:
-				if zi in Zsalt[tag]:
-					val=np.asarray(compare[tag][varname][key])[Zsalt[tag]==zi][0]
-					
+				zstat=stations['MO'][tag]['D']
+				if zi in zstat: #Zsalt[tag]:
+					#val=np.asarray(compare[tag][varname][key])[Zsalt[tag]==zi][0]
+					try:
+						val=np.asarray(compare[tag][varname][key])[zstat==zi][0]
+					except:
+						val=np.nan
+						#from IPython import embed; embed()
 				else:
 					val=np.nan
 				f.write('\t {:8.4f}'.format(val))
@@ -899,8 +854,11 @@ def write_table(varname,Zsalt,compare,names):
 	
 	
 
-dfsalt=write_table('salt',Zsalt,compare,names)
-dftemp=write_table('temp',Ztemp,compare,names)
+#dfsalt=write_table('salt',Zsalt,compare,names)
+#dftemp=write_table('temp',Ztemp,compare,names)
+dfsalt=write_table('S',stations,compare,names)
+dftemp=write_table('T',stations,compare,names)
+
 
 for key in compare[tag]['salt'].keys():
 	for zi in zs:
@@ -915,7 +873,7 @@ for key in compare[tag]['salt'].keys():
 
 
 set_fontsize(fac=1.8)		
-zs=np.asarray(np.unique(np.hstack([np.asarray(Zsalt[tag]) for tag in Zsalt.keys() ])),int)
+zs=np.asarray(np.unique(np.hstack([np.asarray(stations['MO'][tag]['D']) for tag in stations['MO'].keys() ])),int)
 xbar=range(len(names))
 plt.figure()
 for zi in zs:
@@ -951,7 +909,7 @@ set_fontsize(fac=1)
 # top botoopm
 label=['top','bottom']
 for nr,i in enumerate([0,-1]):
-	samples=[ [compare[tag]['temp']['std2'][i]/compare[tag]['temp']['std1'][i],compare[tag]['temp']['cor'][i] ,tag+' '+str(Zsalt[tag][i])+'m'] for tag in names ]
+	samples=[ [compare[tag]['T']['std2'][i]/compare[tag]['T']['std1'][i],compare[tag]['T']['cor'][i] ,tag+' '+str(stations['MO'][tag]['D'][i])+'m'] for tag in names if ~np.isnan(compare[tag]['T']['bias']).max()]
 	plotTaylor(samples=samples)
 	plt.suptitle('Temperature ' +label[nr])
 	plt.savefig(outdir+'5_taylor_temp'+label[nr]+'.png',dpi=300)
@@ -960,7 +918,7 @@ for nr,i in enumerate([0,-1]):
 # top botoopm
 label=['top','bottom']
 for nr,i in enumerate([0,-1]):
-	samples=[ [compare[tag]['salt']['std2'][i]/compare[tag]['salt']['std1'][i],compare[tag]['salt']['cor'][i] ,tag+' '+str(Zsalt[tag][i])+'m'] for tag in names ]
+	samples=[ [compare[tag]['salt']['std2'][i]/compare[tag]['salt']['std1'][i],compare[tag]['salt']['cor'][i] ,tag+' '+str(Zsalt[tag][i])+'m'] for tag in names if ~np.isnan(compare[tag]['T']['bias']).max() ]
 	plotTaylor(samples=samples)
 	plt.suptitle('Salinity ' +label[nr])
 	plt.savefig(outdir+'5_taylor_salt'+label[nr]+'.png',dpi=300)	
@@ -1102,6 +1060,44 @@ if add_amm15:
 		plt.savefig(outdir+'Profile_temp2_'+tag+'.png',dpi=300)
 
 
+# top botoopm
+label=['top','bottom']
+for nr,i in enumerate(range(10)):#[0,-1]
+	samples=[ [compare[tag]['T']['std2'][i]/compare[tag]['T']['std1'][i],compare[tag]['T']['cor'][i] ,tag+' '+str(stations['MO'][tag]['D'][i])+'m'] for tag in names if (i<=len(stations['MO'][tag]['D'])) & (~np.isnan(compare[tag]['T']['bias']).max())]
+	plotTaylor(samples=samples)
+	plt.suptitle('Temperature ' +label[nr])
+	plt.savefig(outdir+'6_all_taylor_temp'+label[nr]+'.png',dpi=300)
+	plt.close()		
+		
+
+# top botoopm
+label=['top','bottom']
+samples=[]
+for nr,i in enumerate(range(10)):#[0,-1]
+	for tag in names:
+		try:
+			samples.append( [compare[tag]['T']['std2'][i]/compare[tag]['T']['std1'][i],compare[tag]['T']['cor'][i] ,tag+' '+str(stations['MO'][tag]['D'][i])+'m'])
+		except:
+			pass
+plotTaylor(samples=samples)		
+compare[tag]['T']['bias']).max())]
+plotTaylor(samples=samples)
+plt.suptitle('Temperature ' +label[nr])		
+plt.savefig(outdir+'6_all_taylor_temp'+label[nr]+'.png',dpi=300)		
+
+# top botoopm
+label=['top','bottom']
+samples=[]
+for nr,i in enumerate(range(10)):#[0,-1]
+	for tag in names:
+		try:
+			samples.append( [compare[tag]['S']['std2'][i]/compare[tag]['S']['std1'][i],compare[tag]['S']['cor'][i] ,tag+' '+str(stations['MO'][tag]['D'][i])+'m'])
+		except:
+			pass
+plotTaylor(samples=samples)		
+#plt.suptitle('Salinity ' +label[nr])		
+plt.savefig(outdir+'6_all_taylor_salt'+label[nr]+'.png',dpi=300)			
+		
 # create latex + pdf
 if put_pics_to_texdoc:
 		print('generating tex doc and pdf')

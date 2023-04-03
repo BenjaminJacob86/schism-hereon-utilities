@@ -51,16 +51,18 @@ import datetime as dt
 from netCDF4 import Dataset,MFDataset
 import pickle
 from scipy.interpolate import interp1d
-sys.path.insert(0,'/pf/g/g260114/Programs/python/scripts/')
-sys.path.insert(0,'/work/gg0028/SCHISM/validation/lib/')
+#sys.path.insert(0,'/pf/g/g260114/Programs/python/scripts/')
+#sys.path.insert(0,'/work/gg0028/SCHISM/validation/lib/')
+sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/')
+sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/Lib/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities')
 sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities/Lib/')
 from schism import * # import schism functions
-from techit2 import * # import latex script
+#from techit2 import * # import latex script
+from techit import * # import latex script
 from TaylorDiagram import * # import taylordiagram
-from data_and_model_classes import cmems
+#from data_and_model_classes import cmems
 import pandas as pd
-import utide
 from matplotlib.dates import date2num
 import xarray as xr
 from numba import jit
@@ -93,7 +95,8 @@ elif SateliteProdcut=='DUACS':
 	offset=0
 	label='mean SLA [m]'
 elif SateliteProdcut=='OSTIA':	
-	SATdir='/gpfs/work/ksddata/observation/remote/ostia/ostia_data.nc' 
+	#SATdir='/gpfs/work/ksddata/observation/remote/ostia/ostia_data.nc' 
+	SATdir='/work/gg0028/ksddata/remote/ostia/ostia_GB_2017.nc'#'/work/gg0028/ksddata/remote/ostia/'
 	#SATdir='/gpfs/work/ksddata/observation/remote/AVHRR_unzip/'
 	varname='sst'
 	offset=0#-273.15
@@ -107,15 +110,13 @@ elif SateliteProdcut=='OSTIA':
 ####### SCHISM SETUP ################################
 
 # schism setup(s) for cross validation TG stations are selected based on coverage of first setup
-setupdir=['/gpfs/work/jacobb/data/SETUPS/GermanBight/GermanBight_HR_Ballje/']*3  # schism run directory, containts hgrid.* etc.
-ncdir=[setupdir[0] + 'combined/'] 		  #   directory of schism nc output 
-										  # True: use station output False: extract from netcdf (slow)
-
-#setupdir+=['/gpfs/work/jacobb/data/SETUPS/GermanBight/GermanBight_HR_Ballje/nudged/']  # schism run directory, containts hgrid.* etc.
-ncdir+=[setupdir[1] + 'dkrz_runs/nudged/'] 		  #   directory of schism nc output 
-ncdir+=[setupdir[1] + 'dkrz_runs/dt90_nudged/'] 		  #   directory of schism nc output 
-setup_names=['GBHRballje','nudged','dt90_nudged']#['schism_dwd','schism_era']
-varname_model='temp'
+setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/']  # schism run directory, containts hgrid.* etc.
+ncdir=[setupdir[0] + 'outputs_all/'] 		  #   directory of schism nc output 
+										  # True: use station output False: extract from netcdf 
+setup_names=['GB2017',]#['schism_dwd','schism_era']
+#varname_model='temp' old output
+varname_model='temperature' #new output
+stackmax=365
 ######################
 
 ################ CMEMS comparison #############
@@ -166,14 +167,24 @@ for i,folder in enumerate(setupdir):
 	s.nntree = cKDTree(list(zip(s.lon,s.lat))) 
 	setups[i]=s
 	
+	
+	if len(glob.glob(ncdir[0]+'out2d*'))>0:
+		if SateliteProdcut=='OSTIA':
+			pattern='temperature_'
+		else:
+			print('error')
+		outputfmt='new'	
+	else: # old combined format
+		pattern='schout_'
+		outputfmt='old'
 	schismfiles=[] 
 	for iorder in range(6): # check for schout_nc files until 99999
-		schismfiles+=glob.glob(ncdir[i]+'schout_'+'?'*iorder+'.nc')
+		schismfiles+=glob.glob(ncdir[i]+pattern+'?'*iorder+'.nc')
 	nrs=[int(file[file.rfind('_')+1:file.index('.nc')]) for file in schismfiles]
-	schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])
-	nrs=list(np.asarray(nrs)[np.argsort(nrs)])
+	schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])[:stackmax]
+	#nrs=list(np.asarray(nrs)[np.argsort(nrs)])
 	s.nc=xr.open_mfdataset(schismfiles)
-	
+
 	# bounadary path
 	bdnodes=[]
 	x,y=np.asarray(s.lon),np.asarray(s.lat)
@@ -191,9 +202,21 @@ for s in setups.values():
 # time range
 t0=np.max([(s.nc['time'][0].values) for s in setups.values() ])
 t1=np.min([(s.nc['time'][-1].values) for s in setups.values() ])
-year0=np.int(str(t0)[:4])
-year1=np.int(str(t1)[:4])
-years=np.unique(range(year0,year1+1))
+
+if outputfmt=='new':
+	p=param(setupdir[0]+'/param.in')
+	reftime=np.asarray(dt.datetime(np.int(p.get_parameter('start_year')),\
+		np.int(p.get_parameter('start_month')),\
+		np.int(p.get_parameter('start_day')),\
+		np.int(p.get_parameter('start_hour')),0,0),np.datetime64)
+	t0=reftime+t0*np.timedelta64(1,'s')
+	t1=	reftime+t1*np.timedelta64(1,'s')
+	
+	year0 = t0.astype('datetime64[Y]').astype(int) + 1970
+else:		
+	year0=np.int(str(t0)[:4])
+	year1=np.int(str(t1)[:4])
+years=np.unique(range(year0,year0+1))
 
 # geo range
 lonmin=np.min([np.min(s.lon) for s in setups.values() ])
@@ -224,8 +247,14 @@ except:
 	LON,LAT=np.meshgrid(SAT['longitude'],SAT['latitude'])
 	sattype=2
 time=SAT['time'].values
-OBS=SAT[varname][0,:].values
-
+try:
+	OBS=SAT[varname][0,:].values
+except:
+	varname='analysed_sst'
+	OBS=SAT['analysed_sst'][0,:].values
+if OBS.max()>100:
+	offset=-273.15
+offset=-273.15
 
 
 # mask for Satelite outside domain
@@ -301,11 +330,14 @@ cov={i:np.zeros(OBS.shape) for i in range(len(setups))}
 
 names=['SAT']+setup_names	
 for i,s in enumerate(setups.values()):
-	nci=s.nc.interp(time=str(timei)[:19])
+	if outputfmt=='old':
+		nci=s.nc.interp(time=str(timei)[:19])
+	else:	
+		nci=s.nc.interp(time=(timei-reftime)/np.timedelta64(1,'s'))
 	#OBSi=np.ma.masked_array(nci['temp'].values[s.nn].reshape(LON.shape),mask=s.mask)
 	OBSi=np.ma.masked_array(nci[varnames[i]].values.flatten()[s.nn].reshape(LON.shape),mask=s.mask)
 	Tmean[i+1]=np.nanmean(OBSi[ivalid])
-	
+
 day=(timei-t0)/np.timedelta64(1,'D')
 t_ts=[day+(-np.timedelta64(1,'s'))/np.timedelta64(1,'D')	]	
 
@@ -350,7 +382,11 @@ for file in SATfiles[:nt]:  # osisaf files  need to be iterated
 		Tmean[0]=np.hstack((Tmean[0],OBS.mean()))
 		OBSis=[]
 		for i,s in enumerate(setups.values()):
-			nci=s.nc.interp(time=str(timei)[:19])
+			#nci=s.nc.interp(time=str(timei)[:19])
+			if outputfmt=='old':
+				nci=s.nc.interp(time=str(timei)[:19])
+			else:	
+				nci=s.nc.interp(time=(timei-reftime)/np.timedelta64(1,'s'))
 			OBSi=(nci[varnames[i]].values.flatten()+offsets[i])[s.nn]
 			OBSi=np.ma.masked_array(OBSi.reshape(LON.shape),mask=s.mask)
 			OBSis.append(OBSi)
@@ -363,7 +399,10 @@ for file in SATfiles[:nt]:  # osisaf files  need to be iterated
 		plt.clf()
 		phs={}
 		plt.subplot(m,n,1)
-		phs[0]=plt.pcolormesh(LON,LAT,OBS,vmin=vmin,vmax=vmax,shading='gouraud',cmap=cmap)
+		#phs[0]=plt.pcolormesh(LON,LAT,OBS,vmin=vmin,vmax=vmax,shading='gouraud',cmap=cmap)
+		phs[0]=plt.pcolormesh(LON,LAT,OBS,vmin=vmin,vmax=vmax,cmap=cmap)
+		s.plot_domain_boundaries(append=True,latlon=True)
+		plt.legend([])
 		plt.xticks([])
 		plt.yticks([])
 		plt.title('SAT')
@@ -372,16 +411,26 @@ for file in SATfiles[:nt]:  # osisaf files  need to be iterated
 		
 		for i,s in enumerate(setups.values()):
 			plt.subplot(m,n,2+i)
-			nci=s.nc.interp(time=str(timei)[:19])
+			if outputfmt=='old':
+				nci=s.nc.interp(time=str(timei)[:19])
+			else:	
+				nci=s.nc.interp(time=(timei-reftime)/np.timedelta64(1,'s'))
+			#nci=s.nc.interp(time=str(timei)[:19])
 			OBSi=OBSis[i]
-			phs[i+1]=plt.pcolormesh(LON,LAT,OBSi,cmap=cmap,vmin=vmin,vmax=vmax,shading='gouraud')
+			#phs[i+1]=plt.pcolormesh(LON,LAT,OBSi,cmap=cmap,vmin=vmin,vmax=vmax,shading='gouraud')
+			phs[i+1]=plt.pcolormesh(LON,LAT,OBSi,cmap=cmap,vmin=vmin,vmax=vmax)
+			s.plot_domain_boundaries(append=True,latlon=True)
+			plt.legend([])
 			plt.title(setup_names[i])
 			ch=plt.colorbar(extend='both')
 			plt.xticks([])
 			plt.yticks([])
 		
 			plt.subplot(m,n,n+2+i)
-			phs[i+1]=plt.pcolormesh(LON,LAT,OBSis[i]-OBS,vmin=dmin,vmax=dmax,cmap=cmap2,shading='gouraud')
+			#phs[i+1]=plt.pcolormesh(LON,LAT,OBSis[i]-OBS,vmin=dmin,vmax=dmax,cmap=cmap2,shading='gouraud')
+			phs[i+1]=plt.pcolormesh(LON,LAT,OBSis[i]-OBS,vmin=dmin,vmax=dmax,cmap=cmap2)
+			s.plot_domain_boundaries(append=True,latlon=True)
+			plt.legend([])
 			plt.xticks([])
 			plt.yticks([])
 			plt.title('above - SAT')
@@ -445,7 +494,11 @@ for file in SATfiles[:nt]:
 		var[iuse]+=(OBS[iuse]-mean[iuse])**2
 		
 		for i,s in enumerate(setups.values()):
-			nci=s.nc.interp(time=str(timei)[:19])
+			if outputfmt=='old':
+				nci=s.nc.interp(time=str(timei)[:19])
+			else:	
+				nci=s.nc.interp(time=(timei-reftime)/np.timedelta64(1,'s'))
+			#nci=s.nc.interp(time=str(timei)[:19])
 			#OBSi=np.ma.masked_array(nci[varnames[i]].values.flatten()[s.nn].reshape(LON.shape),mask=s.mask)
 			#OBSi=nci[varnames[i]].values.flatten()[s.nn].reshape(LON.shape)
 			OBSi=(nci[varnames[i]].values.flatten()+offsets[i])[s.nn]
@@ -477,7 +530,11 @@ for j,variable in enumerate(variables):
 		vmax=np.maximum(vmax,np.nanmax(variable[i]))
 	for i,s in enumerate(setups.values()):
 		plt.subplot(len(setups),4,4*i+1+j)
-		plt.pcolormesh(LON,LAT,np.ma.masked_array(variable[i],mask=mask==False),vmin=vmin,vmax=vmax,shading='gouraud',cmap=cmap2)
+		#plt.pcolormesh(LON,LAT,np.ma.masked_array(variable[i],mask=mask==False),vmin=vmin,vmax=vmax,shading='gouraud',cmap=cmap2)
+		plt.pcolormesh(LON,LAT,np.ma.masked_array(variable[i],mask=mask==False),vmin=vmin,vmax=vmax,cmap=cmap2)
+		s.plot_domain_boundaries(append=True,latlon=True)
+		plt.legend([])
+		plt.legend([])
 		plt.colorbar(extend='both')
 		#plt.clim(clims[j])
 		plt.xticks([])
