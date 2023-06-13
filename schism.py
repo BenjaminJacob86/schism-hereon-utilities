@@ -308,8 +308,8 @@ class schism_setup(object):
 
       # write elements
       if split_quads:
-          ielement=range(s.nvplt.shape[0])	  
-          nv=s.nvplt+1
+          ielement=range(self.nvplt.shape[0])	  
+          nv=self.nvplt+1
       else:
           ielement,nv=self.ielement,self.nv		
 
