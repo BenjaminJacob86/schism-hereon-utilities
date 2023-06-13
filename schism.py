@@ -299,19 +299,24 @@ class schism_setup(object):
 
 
   def dump_hgridgr3(self,filename='hgrid_new.gr3',comment='grid_transfer',split_quads=False):
+
+      # write elements
+      if split_quads:
+          ielement=range(1,self.nvplt.shape[0]+1)	  
+          nv=self.nvplt+1
+		  nelements=self.nvplt.shape[0]
+      else:
+          ielement,nv=self.ielement,self.nv		
+          nelements=self.nelements
+
       f = open(filename,'w')
       f.write('%s - %s\n'%(filename,comment))
-      f.write('%d %d\n'%(self.nelements,self.nnodes))
+      f.write('%d %d\n'%(nelements,self.nnodes))
       # write nodes
       for n,x,y,d in zip(self.inodes,self.x,self.y,self.depths):
           f.write('%d %0.12f %0.12f %0.12f\n'%(n,x,y,d))
 
-      # write elements
-      if split_quads:
-          ielement=range(self.nvplt.shape[0])	  
-          nv=self.nvplt+1
-      else:
-          ielement,nv=self.ielement,self.nv		
+
 
       for n,nv in zip(ielement,nv):
           f.write('%d %d '%(n,len(nv)))
