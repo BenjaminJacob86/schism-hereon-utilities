@@ -22,7 +22,7 @@
 
 
 !
-!ifort -mcmodel=medium -CB -O2 -o gen_nudge_from_AMM15_check_varids gen_nudge_from_AMM15_check_varids.f90 /gpfs/home/jacobb/git/schism-master/src/Utility/UtilLib/pt_in_poly_test.f90 /gpfs/home/jacobb/git/schism-master/src/Utility/UtilLib/compute_zcor.f90 -I$NETCDFHOME/include -L/project/opt/software/netcdf/4.7.0/intel/lib -lnetcdff -L/project/opt/software/hdf5/1.10.5/intel/lib -L/project/opt/software/netcdf/4.7.0/intel/lib -lnetcdf -lnetcdf -lhdf5_hl -lhdf5 -lsz -lz -lcurl -lm
+!ifort -mcmodel=medium -CB -O2 -o gen_nudge_from_AMM15_check_varids gen_nudge_from_AMM15_check_varids.f90 /gpfs/home/jacobb/git/schism-master/src/Utility/UtilLib/pt_in_poly_test.f90 /gpfs/home/jacobb/git/schism-master/src/Utility/UtilLib/compute_zcor.f90 -I$NETCDFHOME/include -L/project/opt/software/netcdf/4.7.0/intel/lib -lnetcdff -L/project/opt/software/hdf5/1.10.5/intel/lib -L/project/opt/software/netcdf/4.7.0/intel/lib -lnetcdf -lnetcdf -lhdf5_hl -lhdf5 -lsz -lz -lcurl -lmworkdi
 
 
 

@@ -1,7 +1,7 @@
 """
 mv wwms *.site files from within different folders
 """
-
+import os
 from glob import glob
 import numpy as np
 

@@ -83,6 +83,7 @@ cluster='levante' # levante.
 # levante
 if cluster=='levante':
 	tgdir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/TG/'
+	#tgdir='/work/gg0028/ksddata/insitu/TideGauge/MyOcean/'
 elif cluster=='strand':	
 	tgdir='/gpfs/work/ksddata/observation/insitu/CMEMS/NorthWestShelf/TG/'
 
@@ -99,54 +100,57 @@ oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/' #amm15 direct
 #setupdir+=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/'] 
 
 
-setupdir=['/work/bg1186/from_Mistral/bg1186/g260094/SNS/SNSE3D_01a_r212_MSLRnsob_prc50/']
-setupdir+=['/work/gg0028/g260114/RUNS/CheckAmpJohannes/'] 
+#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/xaver/GB_2013_xaver/','/work/gg0028/g260114/RUNS/GermanBight/xaver/GB_2013_xaver/veg_REF/']
+
+#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_REF/',
+#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',
+#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_max/',
+#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_HE/',
+#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_LE/'][:3]
+
+setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_REF/']
 
 
+#setup_names=['GB_blank','GB_REF'] #,'GNU','ParamReset']
+setup_names=['REF']
+#ref='Veg_REF'
+#control='Veg_CNTRL'
+#experiment='Veg_max'
+#setup_names=experiments=[ref,control,'Veg_max','Veg_HE','Veg_LE'][:3] #,experiment]
 
+#ncdir=[setupdir[0] + 'outputs_all/',setupdir[1] + 'outputs_all/'] 		  #   directory of schism nc output or 
+ncdir=[setupdir[i] + 'outputs_all/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
+#ncdir=[setupdir[i] + 'outputs_merged/' for i in range(len(setup_names))][:3]
+
+max_stack=303 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
 
 #setupdir+=[#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/GNU_COMPILER/']
 #setupdir+=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/ParamCheck/']
 #ncdir=[setupdir[0] + 'outputs01/'] 		  #   directory of schism nc output or 
 #ncdir+=[setupdir[1] + 'outputs01/']
 
-ncdir=[setupdir[0] + 'outputs/'] 		  #   directory of schism nc output or 
-ncdir+=[setupdir[1] + 'outputs/']
-
-
-#ncdir+=[setupdir[2] + 'outputs/']
-#ncdir+=[setupdir[3] + 'outputs/']
-
-setup_names=['REF','RepTry'] #,'GNU','ParamReset']
-
-#setupdir=['/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/']*2 
-##setupdir+=['/gpfs/work/jacobb/data/RUNS/VegetationControl/']
-#setupdir+=['/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/']
-#
-##ncdir=[setupdir[0] + 'outputs01/'] 		  #   directory of schism nc output or station output
-#ncdir=[setupdir[0] + 'combined/'] 		  #   directory of schism nc output or 
-#ncdir+=[setupdir[1] + 'RUN_levante_new_code/']
-##ncdir+=[setupdir[2] + 'outputs/']
-#ncdir+=[setupdir[2] + 'RUN_levante_Param_fix/']
-
 
 # True: use station output False: extract from netcdf (slow)
 #use_station_in=[True,True] #,False,False]					  
 use_station_in=[False,False]					  
-
+use_station_in=[False]*len(setup_names)
 #setup_names=['strand','levante_sed','strand_rerun','ParamFix']
 #setup_names=['strand','levante_sed','ParamFix']
 ######################
  
 #outdir=setupdir[-1]+'/TGvalid_large_font3/'	  # output directory where images will be stored
-outdir=setupdir[0]+'TGvalid2/'
-year=2017							  # year to be analyesed 	 
-dtol=0.05           				  # distance tolerance in degree lon/lat towards tg stations 
+outdir=setupdir[0]+'TGvalid/'
+year=2017							  # year to be analyesed if year=None use first year of model run 	 
+#dtol=0.05           				  # distance tolerance in degree lon/lat towards tg stations 
+dtol=0.4    
+#t00=np.datetime64('2013-12-01') #=False							  # only use time period after t00 if t00=False use all avaialbale overlapping data	
+t00=np.datetime64('2017-10-25')#('2013-10-27') #=False							  # only use time period after t00 if t00=False use all
+#t11=np.datetime64('2013-11-04') #=False							  # only use time period after t00 if t00=False use all
 
-
-skipdays=0							  # skip days in beginnig															
 remove_mean=True  					  # remove temporal mean from Data and Model to compare 2
 use_amm=False						  # compare against amm15
+shift_dt=np.timedelta64(1,'h')		  # timestep correction if necessary
+
 
 #--- what to plot True/False:			
 overview_map=True												
@@ -162,7 +166,7 @@ tidal_difference_maps=False
 
 
 # FIlter Criteria Exclude bad statons or add known offsets
-exclude_stations=['Buesum','Delfzijl','Husum','Havneby','Wittduen']#,'Huibertgat'            #'HusumTG', ,'Havneby'
+exclude_stations=['BallumTG','BronsTG','DelfzijlTG','HusumTG','MandoTG','NesTG','NieuweStatenzijlTG','RibeTG','VidaaTG'] #['Buesum','Delfzijl','Husum','Havneby','Wittduen']#,'Huibertgat'            #'HusumTG', ,'Havneby'
 offset_stations={}			   #{'WittduenTG':-5,'BuesumTG':-5} # add value to stations 
 dC_dt_max=1				       # maximum allowed change in sea level per hour to be considered outlier
 							   # check consecutive +- deviation	
@@ -177,6 +181,8 @@ cmap='jet'
 Rcircle=150 							# radius of colorcoded cricles used in scatter maps
 limit_to_data=True   					# limit map plots to bounding box of data.
 
+
+station_style='k.-'   #'k-' # linestyle color for stations.
 
 # Font sizes
 Fincrease=2.0
@@ -268,8 +274,17 @@ for i,folder in enumerate(setupdir):
 		schismfiles=[] 
 		if len(glob.glob(ncdir[i]+'schout_*.nc'))==0:
 			#new io
-			s.nc=schism_outputs_by_variable(ncdir[i])
-			access[i]=schism_outputs_by_variable(ncdir[i])
+			#s.nc=schism_outputs_by_variable(ncdir[i])
+			testfile=np.sort(glob.glob(ncdir[i]+'*out2d*.nc'))[0]
+			if len(testfile)>0:
+				dsi=xr.open_dataset(testfile)
+				use_elev= 'elevation' in list(dsi.keys())
+			else:	
+				use_elev=False
+			if use_elev:
+				access[i]=schism_outputs_by_variable(ncdir[i],varlist=['out2d'],max_stack=max_stack)
+			else:	
+				access[i]=schism_outputs_by_variable(ncdir[i],varlist=['zCoordinates'],max_stack=max_stack)
 			newio.append(True)
 		else:	#old io schout_
 			for iorder in range(6): # check for schout_nc files until 99999
@@ -295,7 +310,7 @@ else:
 	np.int(p.get_parameter('start_month')),\
 	np.int(p.get_parameter('start_day')),\
 	np.int(p.get_parameter('start_hour')),0,0),np.datetime64)
-		T=reftime+access[0].ds['out2d']['time'].values *np.timedelta64(1,'s')
+		T=reftime+access[0].ds['out2d']['time'].values *np.timedelta64(1,'s')+shift_dt
 	else:
 		#T=s.nc['time'].values
 		T=access[0]['time'].values
@@ -608,6 +623,10 @@ for i,name in enumerate(names):
 		if (date-Todates2[-1]) >= modeldt[0]:
 			Todates2.append(date)
 	Todates2=np.asarray(Todates2)
+	# test
+	if t00!=False:
+		Todates2=Todates2[Todates2>=t00]
+	
 	stations['TG']['interp'][name]['time']=Todates2
 	a,ainb,bina=np.intersect1d(Todates, Todates2, assume_unique=False, return_indices=True)
 	#stations['TG']['interp'][name]['zeta']=stations['TG'][name]['zeta'][ifirst:ilast][ainb]
@@ -623,6 +642,9 @@ for i,name in enumerate(names):
 		#start = time.time()
 		tin=(stations[key]['time']-time_schism[0])/(Todates2[1]-Todates2[0])
 		tout=(Todates2-time_schism[0])/(Todates2[1]-Todates2[0])
+		
+		
+		
 		# datetime64
 		#tin=stations[key]['time']
 		#tout=Todates2
@@ -791,7 +813,6 @@ if satistic_maps:
 #plt.title(name)
 	
 ###### Plot first two weeks of data #####
-
 if first_two_Weeks: 
 	print('making plot of first two weeks') # of intersection
 	#tmin=stations[setup_names[0]]['time'][0]
@@ -802,6 +823,8 @@ if first_two_Weeks:
 	
 	for i,name in enumerate(names):
 		tmin=stations[setup_names[0]]['time'][0] if (stations[setup_names[0]]['time'][0] > stations['TG'][name]['time'][0]) else stations['TG'][name]['time'][0] 
+		if t00!=False:
+			tmin=np.maximum(tmin,t00)
 		tmax=tmin+np.timedelta64(14,'D')
 		#inds=stations[setup_names[0]]['time']<tmax
 		inds=[]
@@ -811,7 +834,7 @@ if first_two_Weeks:
 		inds2=(stations['TG'][name]['time']>=tmin) & (stations['TG'][name]['time']<=tmax)
 		#plt.clf()
 		plt.close()
-		plt.plot(stations['TG'][name]['time'][inds2],stations['TG'][name]['zeta'][inds2],'k-')
+		plt.plot(stations['TG'][name]['time'][inds2],stations['TG'][name]['zeta'][inds2],station_style)
 		for nr,key in enumerate(sources[1:]):
 			plt.plot(stations[key]['time'][inds[nr]],stations[key]['zeta'][:,i][inds[nr]],'-')
 		plt.legend(sources,ncol=4,loc='upper center',frameon=False)					

@@ -25,6 +25,7 @@ from scipy.interpolate import interp1d
 import time
 plt.ion()
 
+tstart=time.time()
 # before enerting python and execution call export OMP_NUM_THREADS=1
 
 # incorporate
@@ -49,25 +50,20 @@ print('starting program')
 #t1=dt.datetime(2018,12,31)
 #dt_output=3600    # timestep for output [seconds]
 
-t0=dt.datetime(2020,7,2)		#  time start WK
-t1=dt.datetime(2020,7,4)		#  time end WK
+t0=dt.datetime(2021,11,2)		#  time start WK
+t1=dt.datetime(2023,1,1)		#  time end WK
 #dt_output=86400    # timestep for output [seconds] take as input
-dt_output=0         # if zero take same temporal resolution as input data
+dt_output=43200         # if zero take same temporal resolution as input data
 					# tine is counted from t0 on
 
 # forcing source  amm15 gcoast.
 #schismdir='/gpfs/work/jacobb/data/SETUPS/SNS_Wei/' # setup directory
-schismdir=os.getcwd()
-schismdir=schismdir[:schismdir.rindex('/')]+'/' #assume 
+schismdir=os.getcwd()  # local
+#schismdir=schismdir[:schismdir.rindex('/')]+'/' #assume 
+#schismdir=rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/'
 
-#schismdir='/gpfs/work/jacobb/data/RUNS/BlackSea/BS4routine/'
 frocingtype='cmems'#'gcoast'
-#frcdir='/gpfs/work/jacobb/data/RUNS/BlackSea/BS4routine/download_cmems/blacksea/' # forcing directory WKi
-#frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/ 																				  # with data downloaded by	download_med_fc.sh		#
-#frcdir=os.getcwd()+'/download_cmems_GB/' # asume relative path rundir/forcing/download_cmems_GB/   
-
-schismdir=rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/'
-frcdir='/gpfs/work/jacobb/data/SETUPS/GB_template/forcing//download_cmems_GB/'
+frcdir='/gpfs/work/jacobb/data/routines/blacksea_routine/Download/download_cmems_BS/medsea/'
 plot_bd=True # make control plots of boundaries
 
 #openbd_segs=[0,8]  # open boundary segments Determine from bctides in boundary configuration corresponding to
@@ -541,8 +537,16 @@ ds['uv']=ds['uv'].sel(lon=slice(lon.min()-1,lon.max()+1),lat=slice(lat.min()-1,l
 ndepth=len(ds['salt']['depth'])
 ##########################################################
 
+# check time to not produce nan in interpolation
+if True: # workaround for cmems monthly mean
+	t0data=ds['ssh'].time[0].values
+	t0data=datetime64_to_datetime([t0data])[0]
+else:
+	t0data=np.asarray(ds['ssh'].time[0].values,dt.datetime) # not working for lengths 1
 
-	
+if t0-t0data< dt.timedelta(0):
+	raise ValueError(t0,'selected starttime {:s} for forcing output predates first availlable  time {:s} in input data'.format(str(t0),str(t0data)))
+ 
 ############# input model get nearest neighbours of boundary coordinates # dimension order lat lon
 if np.prod(np.asarray(grid['ssh']['dimensions'])[np.asarray(grid['ssh']['dimensions']) != name_time]==np.asarray([name_lat,name_lon])):
 	lon2d,lat2d=np.meshgrid(ds['ssh'][name_lon][:].values,ds['ssh'][name_lat][:].values)
@@ -802,14 +806,14 @@ ws4D={name_u: np.tile(ws4[name_u],(ndepth,1)),name_v: np.tile(ws4[name_v],(ndept
 #		#bdprofile[name][ti,:]=bilin3depth(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,False,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
 #		bdprofile[name][ti,:]=bilin3depthUseWeights(x,y,datain,uvindsx[name],uvindsy[name],bdx,bdy,ws1D[name],ws2D[name],ws3D[name],ws4D[name]).T
 
-
+steps_perday=86400/dt_output
 
 # Extract Profiles from forcing and time interpolate
 for ti in range(nt):
 	t=t0+ti*deltaT
 	#print(ti)
-	if ti%24==0:
-		print('doing day ' + str(ti/24))
+	if ti%steps_perday==0:
+		print('doing day ' + str(ti/steps_perday))
 
 	#datets working with gcoast but not amm15 therefore convert to string to fit both :-(	
 	# probbly makes things slower
@@ -994,10 +998,13 @@ if plot_bd:
 			plt.xlabel('bdy node')
 			plt.ylabel('bddepths')
 			ch.set_label('s [g/kg]')
-			plt.suptitle(str(t0+timesq[ti]/[timesq[1]]*deltaT))	
+			plt.suptitle(str(t0+timesq[ti]/timesq[1]*deltaT))	
 			plt.tight_layout()
 			
 			plt.savefig('bd_%i_%s'%(i,label[ti]),dpi=400)
 			#plt.show()
 			plt.close()
 #plt.plot(bdprofiles2['ssh'][:,0,0,0])
+
+trun=time.time()-tstart
+print('program finisched after {:f} minutes'.format(trun/60))

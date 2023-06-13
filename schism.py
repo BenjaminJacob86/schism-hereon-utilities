@@ -298,7 +298,7 @@ class schism_setup(object):
     f.close()
 
 
-  def dump_hgridgr3(self,filename='hgrid_new.gr3',comment='grid_transfer'):
+  def dump_hgridgr3(self,filename='hgrid_new.gr3',comment='grid_transfer',split_quads=False):
       f = open(filename,'w')
       f.write('%s - %s\n'%(filename,comment))
       f.write('%d %d\n'%(self.nelements,self.nnodes))
@@ -307,7 +307,13 @@ class schism_setup(object):
           f.write('%d %0.12f %0.12f %0.12f\n'%(n,x,y,d))
 
       # write elements
-      for n,nv in zip(self.ielement,self.nv):
+      if split_quads:
+          ielement=range(s.nvplt.shape[0])	  
+          nv=s.nvplt+1
+      else:
+          ielement,nv=self.ielement,self.nv		
+
+      for n,nv in zip(ielement,nv):
           f.write('%d %d '%(n,len(nv)))
           for nvi in nv:
               f.write('%d '%nvi)

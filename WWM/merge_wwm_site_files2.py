@@ -61,7 +61,7 @@ def load_wwm_site_multiple_files(files,varlist=False,write_joint_file=False):
 	if write_joint_file:
 		outname=files[0].split('/')[-1].replace('.','_joint.')	
 		#header.remove('dates')		
-		data.pop('dates')		
+		#data.pop('dates')		
 		#header='%\t TIME' ' \t '.join(varlist) # 
 		header=' \t'.join(data.keys())
 		m=np.vstack((data[key] for key in data.keys())).T
@@ -73,8 +73,8 @@ def load_wwm_site_multiple_files(files,varlist=False,write_joint_file=False):
 sitenames=[name.split('/')[1] for name in glob('wwm_out01/*.site')]
 sites=dict.fromkeys(sitenames)
 
-varlist=['HS','DM','DSPR','TPP','ELEVATION']
-
+#varlist=['HS','DM','DSPR','TPP','ELEVATION']
+varlist=False
 for name in sitenames:
 	files=np.sort([ os.getcwd() + '/' + file for file in glob('wwm_out*/'+name)	 ])
 	sites[name]=load_wwm_site_multiple_files(files,varlist=varlist,write_joint_file=True)

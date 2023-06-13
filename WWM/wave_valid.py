@@ -27,29 +27,29 @@ from validation_statistics_and_plots import interp_to_data_time,QQplot, TaylorDi
 
 ########### SETTINGS #########
 pdfname="WAM_SCHISM_HS_Validation_2017b.pdf" # name of image pdf
-image_output_dir='/gpfs/work/jacobb/data/immerse/wave/bouy_validation5/'
-skip_n_first_days=0 #skip first days of WWM where model is building up
+image_output_dir='/gpfs/work/jacobb/data/validation/waves/pics/'
+skip_n_first_days=5 #skip first days of WWM where model is building up
 skip_n_first_days=np.timedelta64(skip_n_first_days,'1D')
 
-maxdate=np.datetime64('2017-05-09') # manually set maximumdate
+maxdate=np.datetime64('2017-10-31') # manually set maximumdate
 
-bouydir='/gpfs/work/jacobb/data/immerse/wave/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
+bouydir='/gpfs/work/jacobb/data/validation/waves/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
 
 # WWM run directories containing model station output
 #'/gpfs/work/jacobb/data/RUNS/routine_GB_wave/from_mistral/Bmax1.52Code/','/gpfs/work/jacobb/data/RUNS/routine_GB_wave/from_mistral/Bmax1.3_succ_CodeCHange/',
 
 ## WWM runs
-WWMdirs=['/gpfs/work/jacobb/data/immerse/wave/',]
-wwm_names=['WWM3_dt_300s',]  # names of scenario for display
+WWMdirs=['/gpfs/work/jacobb/data/validation/waves/wwm_veg_ref/',]
+wwm_names=['WWM_2017',]  # names of scenario for display
 wwm_descriptions=['SCHISM vegetation runs 2017/2018  WWM dt 240s']
 comments='' 
 
 
 ## WAM runs
-WWMdirs=['/gpfs/work/jacobb/data/immerse/wave/',]
-wam_names=['NEMO_WAM_SNS',]  # names of scenario for display
-wam_descriptions=['cuple NEMO_RC42 WAM SNS WD',]
-comments='' 
+#WWMdirs=['/gpfs/work/jacobb/data/validation/waves/wwm_veg_ref/',]
+#wam_names=['NEMO_WAM_SNS',]  # names of scenario for display
+#wam_descriptions=['cuple NEMO_RC42 WAM SNS WD',]
+#comments='' 
 
 #No FIno1  wave after 2017
 
@@ -364,11 +364,11 @@ for dir,name in zip(WWMdirs,wwm_names):
 
 
 # wam buoys
-n,m=int(np.ceil(np.sqrt(len(wam_stations)))),int(np.floor(np.sqrt(len(wam_stations))))
-wam_stations_intp=dict.fromkeys(wam_names)
-for i,name in enumerate(wam_names):
-	wam_stations_intp[name]=dict.fromkeys(wam_stations[name].keys())
-					
+#n,m=int(np.ceil(np.sqrt(len(wam_stations)))),int(np.floor(np.sqrt(len(wam_stations))))
+#wam_stations_intp=dict.fromkeys(wam_names)
+#for i,name in enumerate(wam_names):
+#	wam_stations_intp[name]=dict.fromkeys(wam_stations[name].keys())
+#					
 
 n,m=int(np.ceil(np.sqrt(len(wwm_stations)))),int(np.floor(np.sqrt(len(wwm_stations))))
 wwm_stations_intp=dict.fromkeys(wwm_names)
@@ -419,8 +419,8 @@ plt.savefig(fname,dpi=300)
 
 
 
-#for varnameBSH,varnameWWM,varnameWW3,unit in zip(['Hs','tm2'], ['HS','tm02'],['hs','tm2'],['[m]','[h]']):
-for varnameBSH,varnameWWM,varnameWW3,unit in zip(['Hs',], ['HS'],['hs'],['[m]']):
+for varnameBSH,varnameWWM,varnameWW3,unit in zip(['Hs','tm2'], ['HS','tm02'],['hs','tm2'],['[m]','[h]']):
+#for varnameBSH,varnameWWM,varnameWW3,unit in zip(['Hs',], ['HS'],['hs'],['[m]']):
 	# bouy time series
 	for key1,key2 in zip(keysOBS,keysWWM):
 		key1,key2
