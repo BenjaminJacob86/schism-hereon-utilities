@@ -88,64 +88,39 @@ elif cluster=='strand':
 	tgdir='/gpfs/work/ksddata/observation/insitu/CMEMS/NorthWestShelf/TG/'
 
 
-
 oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/' #amm15 directory
-#/gpfs/work/ksddata/observation/insitu/TideGauge/MyOcean/
 
 # schism setup(s) for cross validation TG stations are selected based on coverage of first setup
 #setupdir: schism run directory, containts hgrid.* etc.
 
-
-#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_REF/']
-#setupdir+=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/'] 
-
-
-#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/xaver/GB_2013_xaver/','/work/gg0028/g260114/RUNS/GermanBight/xaver/GB_2013_xaver/veg_REF/']
-
+setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_REF/']
 #setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_REF/',
 #'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',
 #'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_max/',
 #'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_HE/',
 #'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_LE/'][:3]
 
-setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_REF/']
-
-
-#setup_names=['GB_blank','GB_REF'] #,'GNU','ParamReset']
 setup_names=['REF']
-#ref='Veg_REF'
-#control='Veg_CNTRL'
-#experiment='Veg_max'
-#setup_names=experiments=[ref,control,'Veg_max','Veg_HE','Veg_LE'][:3] #,experiment]
 
-#ncdir=[setupdir[0] + 'outputs_all/',setupdir[1] + 'outputs_all/'] 		  #   directory of schism nc output or 
+
 ncdir=[setupdir[i] + 'outputs_all/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
-#ncdir=[setupdir[i] + 'outputs_merged/' for i in range(len(setup_names))][:3]
 
 max_stack=303 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
-
-#setupdir+=[#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/GNU_COMPILER/']
-#setupdir+=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL_no_wave/ParamCheck/']
-#ncdir=[setupdir[0] + 'outputs01/'] 		  #   directory of schism nc output or 
-#ncdir+=[setupdir[1] + 'outputs01/']
 
 
 # True: use station output False: extract from netcdf (slow)
 #use_station_in=[True,True] #,False,False]					  
-use_station_in=[False,False]					  
-use_station_in=[False]*len(setup_names)
-#setup_names=['strand','levante_sed','strand_rerun','ParamFix']
-#setup_names=['strand','levante_sed','ParamFix']
+use_station_in=[False]*len(setup_names) 
 ######################
  
-#outdir=setupdir[-1]+'/TGvalid_large_font3/'	  # output directory where images will be stored
-outdir=setupdir[0]+'TGvalid/'
-year=2017							  # year to be analyesed if year=None use first year of model run 	 
-#dtol=0.05           				  # distance tolerance in degree lon/lat towards tg stations 
-dtol=0.4    
-#t00=np.datetime64('2013-12-01') #=False							  # only use time period after t00 if t00=False use all avaialbale overlapping data	
-t00=np.datetime64('2017-10-25')#('2013-10-27') #=False							  # only use time period after t00 if t00=False use all
-#t11=np.datetime64('2013-11-04') #=False							  # only use time period after t00 if t00=False use all
+
+outdir=setupdir[0]+'TGvalid/' 	    # output directory where images will be stored
+year=2017							# year to be analyesed if year=None use first year of model run 	 
+dtol=0.4    #0.05 					# distance tolerance in degree lon/lat towards tg stations 
+
+
+t00=np.datetime64('2017-10-25')#('2013-10-27') #=False		  # only use time period after t00 if t00=False use all avaialbale overlapping data	
+#t11=np.datetime64('2013-11-04') #=False					  # only use time period until t00 if t11=False use all not in place yet
 
 remove_mean=True  					  # remove temporal mean from Data and Model to compare 2
 use_amm=False						  # compare against amm15
@@ -160,17 +135,17 @@ first_two_Weeks=True 				      # zomed period
 running_avg_window=np.timedelta64(25,'h') # running mean filter in hours
 monthly_subplots=True
 taylor_diag=True
-consts=['M2','S2','M4','M6']									# tidal constituents to compute
+consts=['M2','S2','M4','M6']			# tidal constituents to compute - needs utide package
 tidal_bar_plots=False
 tidal_difference_maps=False
 
 
 # FIlter Criteria Exclude bad statons or add known offsets
-exclude_stations=['BallumTG','BronsTG','DelfzijlTG','HusumTG','MandoTG','NesTG','NieuweStatenzijlTG','RibeTG','VidaaTG'] #['Buesum','Delfzijl','Husum','Havneby','Wittduen']#,'Huibertgat'            #'HusumTG', ,'Havneby'
+exclude_stations=['BallumTG','BronsTG','DelfzijlTG','HusumTG','MandoTG','NesTG','NieuweStatenzijlTG','RibeTG','VidaaTG','TerschellingNoordzeeTG','HarlingenTG'] #['Buesum','Delfzijl','Husum','Havneby','Wittduen']#,'Huibertgat'            #'HusumTG', ,'Havneby'
 offset_stations={}			   #{'WittduenTG':-5,'BuesumTG':-5} # add value to stations 
 dC_dt_max=1				       # maximum allowed change in sea level per hour to be considered outlier
 							   # check consecutive +- deviation	
-dmin=2.5						   # minimum depths for schism nns 	   
+dmin=2.					       # minimum depths for schism nns 	   
 
 ###################
 
@@ -182,7 +157,7 @@ Rcircle=150 							# radius of colorcoded cricles used in scatter maps
 limit_to_data=True   					# limit map plots to bounding box of data.
 
 
-station_style='k.-'   #'k-' # linestyle color for stations.
+station_style='k.'  #'k.-'  #'k-' # linestyle color for stations.
 
 # Font sizes
 Fincrease=2.0

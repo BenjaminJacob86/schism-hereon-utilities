@@ -1023,20 +1023,21 @@ class schism_output():
 class schism_output2():
     nc = None
 
-    def __init__(self,ncdir):
+    def __init__(self,ncdir,max_stack=False,norder=4):
       """
       read output files in folder and initialize grid
       """
       import xarray as xr      
       import glob
       schismfiles=[] 
-      for iorder in range(8): # check for schout_nc files until 99999
+      for iorder in range(norder): # check for schout_nc files until 99999
         schismfiles+=glob.glob(ncdir+'schout_'+'?'*iorder+'.nc')
-        nrs=[int(file[file.rfind('_')+1:file.index('.nc')]) for file in schismfiles]
-        schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])
-        nrs=list(np.asarray(nrs)[np.argsort(nrs)])
+      nrs=[int(file[file.rfind('_')+1:file.index('.nc')]) for file in schismfiles]
+      schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])
+      nrs=list(np.asarray(nrs)[np.argsort(nrs)])
 
-
+      if max_stack != False:
+        schismfiles=schismfiles[:nrs.index(max_stack)]	
       try:
         #self.nc = xr.open_mfdataset(schismfiles)
         self.nc =xr.concat( [xr.open_dataset(fname).chunk() for fname in schismfiles], dim='time')
