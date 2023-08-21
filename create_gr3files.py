@@ -1,6 +1,7 @@
 # crate homogenous and depth threshold based  gr3 files
 import sys
 sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
+sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/')
 from schism import *
 
 # .gr3 name without filetype: vale  - spatially homogenous

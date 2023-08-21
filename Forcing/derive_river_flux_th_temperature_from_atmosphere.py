@@ -5,7 +5,6 @@ import sys
 sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/') 
 from schism import *
 
-
 s=schism_setup()
 
 
@@ -54,19 +53,43 @@ reftime=dt.datetime(int(p.get_parameter('start_year')),
             int(p.get_parameter('start_day')),
             int(p.get_parameter('start_hour')),0,0)	
 
-ntfile=len(ds.time)
+ntfile=len(ds.time) #file length varies
 files=np.sort(glob.glob('sflux/sflux_air_1.*.nc'))
 TEM=np.zeros((len(files)*ntfile,len(nn1d)+1))
+ti0=0
 for i,file in enumerate(files):
 	dsi=xr.open_dataset(file)
-	ti0=i*ntfile
-	ti1=(i+1)*ntfile
-	TEM[ti0:ti1,1:]=np.maximum(dsi['stmp'].values[:,ii,jj],0)
+	ntfile=len(dsi.time) #file length varies
+	ti1=ti0+ntfile
+	tair=dsi['stmp'].values[:,ii,jj]
+	tair-=273.15 #convert celsius
+	TEM[ti0:ti1,1:]=np.maximum(tair,0)
 	
 	basedate=np.asarray(dsi.time.base_date,int)
 	dates=dt.datetime(basedate[0],basedate[1],basedate[2],basedate[3])+	dsi.time.values*dt.timedelta(days=1)
 	TEM[ti0:ti1,0]=np.fix((dates-reftime)/dt.timedelta(seconds=1))
+	ti0+=ntfile
 
+# first zero
+istart=np.where(TEM[:,0]==0)[0][0]
+TEM=TEM[istart:]
+	
+# too long?	
+iend=np.where(TEM[1:,0]==0)[0][0]	
+TEM=TEM[:iend,:]
+	
+a=np.loadtxt('TEM_1.th')	
+
+plt.clf()
+plt.plot(a[:,0]/86400,a[:,1:])
+plt.figure()
+plt.plot(TEM[:,0]/86400,TEM[:,1:])
+
+
+
+
+
+	
 # interpoalte to times of flux.th
 tq=np.loadtxt('flux.th')[:,0]
 
@@ -76,7 +99,7 @@ _,ainb,bina=np.intersect1d(tq,np.fix(TEM[:,0]),return_indices=True)
 #otherwise requires interp.
 TEM=TEM[bina,:]
 
-np.savetxt('TEM_1.th',TEM)
+np.savetxt('TEM_1_BJ.th',TEM)
 
 
 xy=np.asarray(coords)

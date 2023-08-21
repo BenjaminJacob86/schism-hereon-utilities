@@ -1,6 +1,7 @@
 from netCDF4 import Dataset, date2num
 #import netcdftime
-from cftime import utime
+#from cftime import utime
+import cftime
 import numpy as np
 from datetime import datetime as dt
 import os
@@ -23,7 +24,7 @@ do_prec=1       # do precipiation files
 do_non_prec=1   # do other files
 
 
-load_spfh=True # True load specific humidity from era forcases. Else compute from 2m dew point 
+load_spfh=False # True load specific humidity from era forcases. Else compute from 2m dew point 
 spfh_dir='/gpfs/work/jacobb/data/DATA/DOWNL_ERA5/spfh/'
 
 
@@ -62,7 +63,7 @@ def create_grid(nc,inc,basedate):
 	tv.units = 'days since %4i-%02i-%02i %02i:%02i:%02i'%basedate
 	tv.base_date =  list(basedate)
 	#ut = netcdftime.utime(tv.units)
-	ut = utime(tv.units)
+	#ut = utime(tv.units)
 	#
 	incv = inc.variables
 	#
@@ -76,8 +77,10 @@ def create_grid(nc,inc,basedate):
 	#
 	# write time
 	#iut = netcdftime.utime(incv['time'].units)
-	iut = utime(incv['time'].units)
-	tv[0:len(inc.dimensions['time'])] = ut.date2num(iut.num2date(incv['time'][:]))
+	#iut = utime(incv['time'].units)
+	#iut = cftime(incv['time'].units)
+	tv[0:len(inc.dimensions['time'])]=cftime.date2num(cftime.num2date(incv['time'][:],units=incv['time'].units),units=tv.units)
+	#tv[0:len(inc.dimensions['time'])] = cftime.date2num(iut.num2date(incv['time'][:]))
 	# write grid
 	nc.createDimension('nx_grid',len(inc.dimensions['longitude']))
 	nc.createDimension('ny_grid',len(inc.dimensions['latitude']))
@@ -112,9 +115,9 @@ for year in years:
 		 months=range(1,12+1) 	
 
 	for month in months:
-
+		print('month:' +str(month))
 		# open input file
-		inncfile='%s/ERA5CDS_%04d%02d.nc'%(base_dir,year,month)
+		inncfile='%s/ERA5CDS%04d%02d.nc'%(base_dir,year,month)
 		incan = Dataset(inncfile)
 		incv=incan.variables
 		t=incv['time'][:]
@@ -222,7 +225,7 @@ for year in years:
 			nc = Dataset(ncfile,'w',format='NETCDF3_CLASSIC')
 
 			# open short wave rad input  - forecast files are integrals and time shifted 1/2 dt 
-			inncfile='%s/ERA5CDS_%04d%02d.nc'%(base_dir,year,month)
+			inncfile='%s/ERA5CDS%04d%02d.nc'%(base_dir,year,month)
 			#inncfileP='%s/ERA5CDS_%04d%02d.nc'%(base_dir,year-(month==1),(month-1)+12*(month==1)) #previous file
 			#inncfileN='%s/ERA5CDS_%04d%02d.nc'%(base_dir,year+(month==12),(month+1)%13+int(month==12)) #following file
 			#create grid from input file

@@ -48,15 +48,15 @@ warnings.filterwarnings("ignore")
 ########## settings ##################################################
 # directories (have to end with '/')
 # SCHIMS grid files
-setupdir=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/NWBS_vgrid_re/']
+setupdir=['/work/gg0028/g260114/SETUPS/NWBS2b',]
 #setupdir=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/']
-setupdir+=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/NWBS_vgrid_re/Gauss_filter_grid/']
+#setupdir+=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/NWBS_vgrid_re/Gauss_filter_grid/']
 
 
 oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
 
-ncdir=[setupdir[0]+'outputs/'] # where the outputs are.
-ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
+ncdir=[setupdir[0]+'/outputs_all/'] # where the outputs are.
+#ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
 #ncdir=[setupdir[0]+'outputs_hotstart_not_freshened/']
 
 #outdir='/work/gg0028/g260192/SEARECAP/validationTest'
@@ -64,10 +64,11 @@ ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
 outdir=setupdir[0]+'imageComp/' #'/work/gg0028/g260114/postproc/modelcomp/comp4/'
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
-names=['CMEMS','NWBS_vgrid_re','NWBS_GaussFilter',]
+names=['CMEMS','NWBS2b']#,'NWBS_vgrid_re','NWBS_GaussFilter',]
 
-varnames=['temp','ssh','salt']	#varname ['ssh',] if only one has to have ,
+#varnames=['temp','ssh','salt']	#varname ['ssh',] if only one has to have ,
 #varnames=['temp','salt']
+varnames=['ssh',]
 sdictvnames = {'temp':'temperature','ssh':'zCoordinates','salt':'salinity'}
 min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
 difflims={'ssh':1,'salt':4,'temp':4}     # # axis limits +- in difference plot

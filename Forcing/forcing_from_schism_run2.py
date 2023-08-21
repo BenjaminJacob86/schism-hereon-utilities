@@ -14,7 +14,7 @@ import glob
 
 
 # schout style:
-ncdir='/ /work/gg0028/g260114/RUNS/BLACKSEA/RUN24d/RUN24d/new_code/constant_bd//'
+ncdir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24d/RUN24d/new_code/constant_bd/outputs_all/'
 schismfiles=[] 
 for iorder in range(8): # check for schout_nc files until 99999
 	schismfiles+=glob.glob(ncdir+'schout_'+'?'*iorder+'.nc')
@@ -23,19 +23,21 @@ schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])
 nrs=list(np.asarray(nrs)[np.argsort(nrs)])
 
 
-s0dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/' # mother grid
+s0dir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24d/RUN24d/new_code/constant_bd/' # mother grid
 #s1dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/'                    # desitiantion grid reduced bd
 #s2dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/'					   # destination grid full bd
 s1orgdir='/work/gg0028/g260114/RUNS/BLACKSEA/NWBS2b_BSRUN24d_downscaling/'
 
-os.chdir(s1orgdir)
-s1org=schism_setup()
+#os.chdir(s1orgdir)
+#s1org=schism_setup(vgrid_file='vgrid.in.old')
 os.chdir(s0dir)
-s0=schism_setup(hgrid_file='bg.gr3')
+#s0=schism_setup(hgrid_file='bg.gr3')
+s0=schism_setup(vgrid_file='vgrid.in.old')
 #os.chdir(s1dir)
-s1=schism_setup(hgrid_file='fg.gr3')
+#s1=schism_setup(hgrid_file='fg.gr3')
+s1=schism_setup(vgrid_file='vgrid.in.old')
 
-nvertmax=21 #max number of vertical layers in destination grid
+#nvertmax=21 #max number of vertical layers in destination grid
 
 #acc=schism_output2('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/sub').nc # to much space
 os.chdir('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/')

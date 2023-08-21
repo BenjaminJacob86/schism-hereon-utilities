@@ -13,9 +13,16 @@ import pickle
 from scipy.interpolate import interp1d
 from matplotlib import path
 
+
+
 # @strand 
 #sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities/')
 #sys.path.insert(0,'/gpfs/work/jacobb/data/shared/SCHISM/validation/lib')
+
+# in accuracy ins depth interp slab
+
+# recode for depth inter
+# enhance for transect
 
 # @levante
 sys.path.insert(0,'/home/g/g260114/schism-hzg-utilities/')
@@ -26,7 +33,70 @@ from schism import *
 #sys.path.insert(0,'/work/gg0028/g260192/SEARECAP/validationScripts/')
 #from validationFunctions import *
 
-#############
+############# SETTINGS ##################
+
+#from data_and_model_classes import Amm15, cmems
+
+plt.ion()
+
+# subplot surface slab of SCHISM and Amm15 and their difference 
+# iterating over timesteps outputing images for video
+# including time series at given location coords
+		
+
+
+		
+########## settings #################################
+# directories (have to end with '/')
+# SCHIMS grid files
+setupdir=['/work/gg0028/g260192/SCHISM/CoastalBlackSea/version1/']
+oceandir=['/work/gg0028/g260114/RUNS/CoastalBlackSea_error/valid/data/'] # cmems compare data
+ncdir=[setupdir[0]+'outputs/'] # where the outputs are.
+outdir='/work/gg0028/g260114/RUNS/CoastalBlackSea_error/valid2/'
+if not os.path.exists(outdir): os.mkdir(outdir) 
+
+names=['CMEMS','BS_Coastal']
+
+varnames=['temp','ssh','salt']	#varname ['ssh',] if only one has to have ,
+varnames=['ssh']
+#varnames=['temp','salt']
+sdictvnames = {'temp':'temperature','ssh':'zCoordinates','salt':'salinity'}
+#min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
+min_max={'ssh':(-.5,.5),'salt':(0,25),'temp':(5,25)}	# axis range for variables
+difflims={'ssh':0.2,'salt':4,'temp':4}     # # axis limits +- in difference plot
+dthours={'ssh':3,'salt':12,'temp':12}	# make plot each dthours hour
+ndays_ts={'ssh':2,'salt':30,'temp':30}             # nr of days depicted in time series subplot
+
+# considrede time periods and steps for vriables
+vartimes={'ssh':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,1,0),'step[hours]':24},\
+'salt':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,12,0),'step[hours]':24},\
+'temp':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,12,0),'step[hours]':24},\
+}
+
+# coords for time series
+# helgoland
+#lat,lon = 43, 29
+lat,lon = 44.1, 30,
+limx=((27.3,31.8))	#((-1.14,9.84))
+limy=((41,47))	#((49.7,56.21))
+
+dthour=1
+ndays=25 # Run durations
+
+
+# apperence
+cm=plt.cm.turbo # colormap
+cmDiff=plt.cm.bwr
+ax_limitEQ_commonDataRange=True    # minmize ax limits to common Extend which is not Land mask in any of the models
+cm.set_over(color='m', alpha=None)
+cm.set_under(color='k', alpha=None)
+cm.set_bad(color='gray', alpha=None)
+
+############################################
+
+
+
+
 
 def datetime64_to_datetime(t):
   if len(t)==1:
@@ -41,8 +111,8 @@ def schism_time_to_datetime(t, baseTime):
 class cmems():
 
 	def __init__(self, files, varname):
-		self.vardicts={'salt':'so','temp':'thetao','ssh':'zos','u':'uo','v':'vo'}
-		varn = self.vardicts[varname]
+		self.ncs={'salt':'so','temp':'thetao','ssh':'zos','u':'uo','v':'vo'}
+		varn = self.ncs[varname]
 		#self.nc = netCDF4.Dataset(file)
 		sv = xr.open_mfdataset(files)
 		ndims = len(sv.dims)
@@ -50,9 +120,9 @@ class cmems():
 		self.lat = sv['lat'][:].data#[latslice]
 		if ndims == 4:
 			self.d = -sv['depth'][:].data
-			exec("self.{:s} = sv['{:s}'][:,:,:,:]".format(varname, self.vardicts[varname]))
+			exec("self.{:s} = sv['{:s}'][:,:,:,:]".format(varname, self.ncs[varname]))
 		elif ndims == 3: 
-			exec("self.{:s} = sv['{:s}'][:,:,:]".format(varname, self.vardicts[varname]))
+			exec("self.{:s} = sv['{:s}'][:,:,:]".format(varname, self.ncs[varname]))
 		self.ts = datetime64_to_datetime(sv['time'][:].data)
 		self.lon2,self.lat2 = np.meshgrid(self.lon,self.lat)
 		self.LON,self.LAT = np.meshgrid(self.lon,self.lat)
@@ -62,7 +132,7 @@ class cmems():
 		sv.close()
 	
 	def update_var(self, files, varname):
-		varn = self.vardicts[varname]
+		varn = self.ncs[varname]
 		sv = xr.open_mfdataset(files)
 		ndims = len(sv.dims)
 		nt = sv['time'][:].shape[0]
@@ -70,9 +140,9 @@ class cmems():
 			print("updating cmems with a different time coordinate size")
 		if ndims == 4:
 			self.d = -sv['depth'][:].data
-			exec("self.{:s} = sv['{:s}'][:,:,:,:].data".format(varname, self.vardicts[varname]))
+			exec("self.{:s} = sv['{:s}'][:,:,:,:].data".format(varname, self.ncs[varname]))
 		elif ndims == 3: 
-			exec("self.{:s} = sv['{:s}'][:,:,:].data".format(varname, self.vardicts[varname]))
+			exec("self.{:s} = sv['{:s}'][:,:,:].data".format(varname, self.ncs[varname]))
 		#exec("self.{:s}.ndims = ndims".format(varname))
 		sv.close()
 	
@@ -104,20 +174,54 @@ class cmems():
 #        self.profile[varname]=self.ncs[varname][self.varnames[varname]][:][::ii,jj]
 	
 
+	
+#Access function
+def add_info(self):
+	"""  ad information necessary for vertical interpolations"""
+	self.zcorname='zCoordinates'		
+	self.nt,self.nnodes,self.nz,=self.ncs[self.zcorname][self.zcorname].shape
+	self.mask3d=np.zeros((self.nnodes,self.nz),bool) # mask for 3d field at one time step
+	self.ibbtm=self.ncs['out2d']['bottom_index_node'][0,:].values-1    
+	self.nodeinds=np.arange(self.nnodes)
+	for inode in range(self.nnodes):
+		self.mask3d[inode,:self.ibbtm[inode]]=True # controlled that corresponding z is depths		
+		
+			
 ######## load setups   #######################################
-#def update(self,date):
-#       try:
-#            self.nc.close()
-#        except:
-#            pass
-#        (date-self.reftime)
-#        self.file=self.ncdir+'schout_'+str(int(np.ceil((date-self.reftime).total_seconds()/(self.dt*self.nt))))+'.nc'     
-#        self.nc=Dataset(self.file)
-#        self.date=self.reftime+dt.timedelta(seconds=self.nc['time'][0]-self.dt)
-#        self.time=self.date+dt.timedelta(seconds=self.dt)*np.arange(1,self.nt+1) # here wase an error before        
+def get_layer_weights(self,dep,ti): 
+	print('calculating weights for vertical interpolation')
+	ibelow=np.zeros(self.nnodes,int)
+	iabove=np.zeros(self.nnodes,int)
+	weights=np.zeros((2,self.nnodes))
+	# garbage values below ibtm different type , nan or strange values wrong values
+	zcor=self.ncs[self.zcorname][self.zcorname][ti,:,:].values#self.ti_tk.get() #self.ncv['zcor']
+	zcor=np.ma.masked_array(zcor,mask=self.mask3d)
+	
+	a=np.sum(zcor<=dep,1)-1
+	#ibelow=a+np.sum(zcor.mask,1)-1
+	ibelow=a+self.ncs['out2d']['bottom_index_node'][0,:].values-1 #self.ncss[self.filetag][self.bindexname][0,:].values-1
+	#ibelow=a+(self.ncs['bottom_index_node'][:]-1)-1
+	iabove=np.minimum(ibelow+1,self.nz-1)
+	inodes=np.where(a>0)[0]
+	ibelow2=ibelow[inodes]
+	iabove2=iabove[inodes]
+
+	d2=zcor[inodes,iabove2]-dep
+	d1=dep-zcor[inodes,ibelow2]
+	ivalid=d1>0.0
+	iset=d1==0.0
+	d1=d1[ivalid]
+	d2=d2[ivalid]
+
+	weights[0,inodes[ivalid]]=1/d1/(1/d1+1/d2)
+	weights[1,inodes[ivalid]]=1/d2/(1/d1+1/d2)
+	weights[0,inodes[iset]]=1
+	weights[:,np.sum(weights,0)==0.0]=np.nan
+	
+	return ibelow, iabove, weights
 
 # linear time interpolation
-def get_slab(self, time, varname, layer=-1):
+def get_slab(self, time, varname, layer=-1,vlevel=None):
 		""" linear interpolate onto slab """
 		# sel two closest time steps
 		#time=np.datetime64(time)
@@ -125,88 +229,47 @@ def get_slab(self, time, varname, layer=-1):
 		
 		#(1) in case of time == model time
 		if (self.dates[nn[0]] - time).seconds == 0:
-			self.slab = self.nc[varname][varname][nn[0], :, layer].values
-			self.wetdry = self.nc['out2d']['dryFlagElement'][nn[0],:].values
+			
+			self.wetdry = self.ncs['out2d']['dryFlagElement'][nn[0],:].values
+			if vlevel==None:	
+				self.slab = self.ncs[varname][varname][nn[0], :, layer].values		
+				
+			else: #vertical interp 
+				#ibelow, iabove, weights=s0.get_layer_weights(self,dep,ti)
+				ibelow, iabove, weights=self.get_layer_weights(self,-10,0)	
+				ti0=nn[0]
+				
+				self.slab=weights[0,:]*self.ncs[varname][varname][ti0,:,:].values[self.nodeinds,ibelow]+weights[1,:]*self.ncs[varname][varname][ti0,:,:].values[self.nodeinds,iabove]
+				self.slab=np.ma.masked_array(self.slab,mask=np.isnan(self.slab))							
 			
 		#(2) interpolate in time
 		else: 
 			deltaT = np.asarray([ np.abs(ti - time).total_seconds() for ti in self.dates]) #seconds
 			w = (1 - deltaT/deltaT.sum())[nn]
 		
-			self.slab= (w[0]*self.nc[varname][varname][nn[0], :, layer] \
-			              + w[1]*self.nc[varname][varname][nn[1], :, layer]).values
-			self.wetdry = np.round( w[0]*self.nc['out2d']['dryFlagElement'][nn[0],:] \
-			              + w[1]*self.nc['out2d']['dryFlagElement'][[nn1],:] ).values
+			self.wetdry = np.round( w[0]*self.ncs['out2d']['dryFlagElement'][nn[0],:] \
+			              + w[1]*self.ncs['out2d']['dryFlagElement'][[nn1],:] ).values
+			
+			if vlevel==None:			
+				self.slab= (w[0]*self.ncs[varname][varname][nn[0], :, layer] \
+			              + w[1]*self.ncs[varname][varname][nn[1], :, layer]).values
+			else: #vertical interp 
+				#ibelow, iabove, weights=s0.get_layer_weights(self,dep,ti)
+				ibelow, iabove, weights=s0.get_layer_weights(s0,-10,0)	
+				ti0,ti1=nn[0],nn[1]
+				#from IPython import embed; embed()	
+				slab_t0=weights[0,:]*self.ncs[varname][varname][ti0,:,:].values[self.nodeinds,ibelow]+weights[1,:]*self.ncs[varname][varname][ti0,:,:].values[self.nodeinds,iabove]
+				
+				slab_t1=weights[0,:]*self.ncs[varname][varname][ti1,:,:].values[self.nodeinds,ibelow]+weights[1,:]*self.ncs[varname][varname][ti1,:,:].values[self.nodeinds,iabove]
+				
+				
+				self.slab=np.ma.masked_array(w[0]*slab_t0+w[1]*slab_t1,mask=np.isnan(self.slab_t0))				
+						  
 		self.ti = time
 	
 	
 
-#from data_and_model_classes import Amm15, cmems
-
-plt.ion()
-
-# subplot surface slab of SCHISM and Amm15 and their difference 
-# iterating over timesteps outputing images for video
-# including time series at given location coords
-		
-
-
-		
-########## settings #################################
-# directories (have to end with '/')
-# SCHIMS grid files
-setupdir=['/work/gg0028/g260192/SCHISM/CoastalBlackSea/version1/']
-#setupdir=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/']
-#setupdir+=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/NWBS_vgrid_re/']
-
-
-oceandir=['/work/gg0028/g260114/RUNS/CoastalBlackSea_error/valid/data/']
-
-
-
-ncdir=[setupdir[0]+'outputs/'] # where the outputs are.
-#ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
-#ncdir=[setupdir[0]+'outputs_hotstart_not_freshened/']
-
-#outdir='/work/gg0028/g260192/SEARECAP/validationTest'
-outdir='/work/gg0028/g260114/RUNS/CoastalBlackSea_error/valid/'
-if not os.path.exists(outdir): os.mkdir(outdir) 
-
-names=['CMEMS','BS_Coastal']
-
-varnames=['temp','ssh','salt']	#varname ['ssh',] if only one has to have ,
-#varnames=['temp','salt']
-sdictvnames = {'temp':'temperature','ssh':'zCoordinates','salt':'salinity'}
-min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
-difflims={'ssh':1,'salt':4,'temp':4}     # # axis limits +- in difference plot
-dthours={'ssh':3,'salt':12,'temp':12}	# make plot each dthours hour
-ndays_ts={'ssh':2,'salt':30,'temp':30}             # nr of days depicted in time series subplot
-
-# considrede time periods and steps for vriables
-vartimes={'ssh':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,1,0),'step[hours]':24},\
-'salt':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,12,0),'step[hours]':24},\
-'temp':{'startdate':dt.datetime(2015,10,1,13,0),'enddate':dt.datetime(2016,2,1,12,0),'step[hours]':24},\
-}
-
-# coords for time series
-# helgoland
-#lat,lon = 43, 29
-lat,lon = 44.1, 30,
-limx=((27.3,31.8))	#((-1.14,9.84))
-limy=((41,47))	#((49.7,56.21))
-
-dthour=1
-ndays=25 # Run durations
-
-
-# apperence
-cm=plt.cm.turbo # colormap
-cmDiff=plt.cm.bwr
-ax_limitEQ_commonDataRange=True    # minmize ax limits to common Extend which is not Land mask in any of the models
-cm.set_over(color='m', alpha=None)
-cm.set_under(color='k', alpha=None)
-cm.set_bad(color='gray', alpha=None)
-
+ 
 
 # schism setups
 schism_setups=[]
@@ -241,7 +304,7 @@ for i_setup,diri in enumerate(setupdir):
 	#time=reftime+dt.timedelta(days=0.5)
 
 	# enhance schism for conveinet load
-	exec('s{:d}.nc=ds'.format(i_setup))
+	exec('s{:d}.ncs=ds'.format(i_setup))
 	exec('s{:d}.ncdir=ncdir[i_setup]'.format(i_setup))		
 	exec('s{:d}.reftime=reftime'.format(i_setup))
 	exec('s{:d}.file_by_var=files'.format(i_setup))
@@ -252,10 +315,11 @@ for i_setup,diri in enumerate(setupdir):
 	exec('s{:d}.dt=np.diff(s{:d}.dates[:2])[0].total_seconds()'.format(i_setup,i_setup))
 	exec('s{:d}.nt=len(s{:d}.dates)'.format(i_setup,i_setup))
 
+	exec('add_info(s{:d})'.format(i_setup))
+	exec('s{:d}.get_layer_weights=get_layer_weights'.format(i_setup)) #add the function to s0	
 	exec('s{:d}.get_slab=get_slab'.format(i_setup)) #add the function to s0
 	exec('schism_setups.append(s{:d})'.format(i_setup))
 ##################################################################################################
-
 	
 ################### Load schism ############################################
 # myocean
@@ -269,7 +333,7 @@ if 0:
 	Tfile,Sfile,SSHfile=[oceandir + namei for namei in Amm15.gnameExtern(date)]
 	moc=Amm15(Tfile,Sfile,SSHfile)
 	moc.gname(date)		
-	moc.vardict={'ssh':'ssh','temp':'temp','salt':'salt'}
+	moc.nc={'ssh':'ssh','temp':'temp','salt':'salt'}
 elif 1:
 	# myocean
 	Tfiles = np.sort(glob.glob(oceandir[0]+'*TEM*.nc'))
@@ -294,7 +358,7 @@ if 0: #gcoast
 	#moc.update(date)
 	#moc.update(file)
 	moc=gcoast(ds)
-	moc.vardict={'ssh':'ssh','temp':'temp','salt':'salt'}
+	moc.nc={'ssh':'ssh','temp':'temp','salt':'salt'}
 	moc.get_slab(date,level=0,varname='ssh')
 	#moc.plot_slab()
 
@@ -302,8 +366,8 @@ if 0: #gcoast
 models=[moc]
 struct=[1]
 for s in schism_setups:
-	s.vardict = sdictvnames
-	s.get_slab(s, date, s.vardict['temp'])
+	s.nc = sdictvnames
+	s.get_slab(s, date, s.nc['temp'])
 	models+=[s]
 	struct.append(0)
 
@@ -413,6 +477,10 @@ elems=np.asarray(list(s.nvdict))
 #time_array = s0.dates[5::12]
 time_array = s0.dates[5::48]
 
+
+varname='zCoordinates'
+s0.get_slab(s0, time, varname, layer=-1,vlevel=-10)
+
 for time in time_array:
 	print("{}".format(time.strftime('%Y-%m-%d %H:%M')))
 	
@@ -446,7 +514,7 @@ for time in time_array:
 				#plt.colorbar()
 				plt.colorbar(extend='both')
 			else:
-				model.get_slab(model,time=time,varname=model.vardict[varname])
+				model.get_slab(model,time=time,varname=model.nc[varname])
 				#exec('ph{:d},ch=s.plotAtelems(s.slab,cmap=cm,mask=None,extend="both")'.format(i))
 				exec('ph{:d},ch=model.plotAtelems(model.slab,cmap=cm,mask=None)'.format(i))
 				#plt.colorbar(extend='both')
@@ -500,24 +568,28 @@ for time in time_array:
 		# update labels         
 		ttls=[[] for model in models]
 		for i,model in enumerate(models):
-			plt.subplot(ny,ny,i+1)
+			#plt.subplot(ny,ny,i+1)
+			#plt.axis(axes.flatten()[i])
+			axi=axes.flatten()[i]
 			if not 'schism' in str(type(model)):
-				ttls[i]=plt.title(names[i]+ ' ' + time.strftime('%Y-%m-%d %HUTC'))
+				ttls[i]=axi.set_title(names[i]+ ' ' + time.strftime('%Y-%m-%d %HUTC'))
 			else:
-				ttls[i]=plt.title(names[i] + ' ' + time.strftime('%Y-%m-%d %HUTC'))
+				ttls[i]=axi.set_title(names[i] + ' ' + time.strftime('%Y-%m-%d %HUTC'))
 
-			count=len(models)-2
-			th1=[]
-			for i,model in enumerate(models[:int(np.ceil(nx/2))]):
-				for j, model2 in enumerate(models):
-					#if model2 != model:
-					if j > i:
-						th1.append([])
-						#plt.subplot(ny,ny,(i+1)*nx+j+1) - matplotlib now deletes plots if called again so use handles
-						#plt.set_cmap('jet')
-						count+=1
-						th1[count-len(models)]=plt.text( limx[0],limy[0]-0.1,'bias: {:.2f} \n mae: {:.2f} '.format(np.nanmean(updata[count]),np.nanmean(np.abs(updata
-		[count]))) )			
+		count=len(models)-2
+		th1=[]
+		for i,model in enumerate(models[:int(np.ceil(nx/2))]):
+			for j, model2 in enumerate(models):
+				#if model2 != model:
+				if j > i:
+					axi=axes.flatten()[i*nx+j]
+					th1.append([])
+					#plt.subplot(ny,ny,(i+1)*nx+j+1) - matplotlib now deletes plots if called again so use handles
+					#plt.set_cmap('jet')
+					count+=1
+					#th1[count-len(models)]=plt.text( limx[0],limy[0]-0.1,'bias: {:.2f} \n mae: {:.2f} '.format(np.nanmean(updata[count]),np.nanmean(np.abs(updata
+					th1[count-len(models)]=axi.text( limx[0],limy[0]-0.1,'bias: {:.2f} \n mae: {:.2f} '.format(np.nanmean(updata[count]),np.nanmean(np.abs(updata
+	[count]))) )			
 
 		plt.savefig('{}{}_intercomp_{}'.format(outdir2,time.strftime('%Y%m%d_%H%M'),varname),dpi=400)
 		#print('took '+str((dt.datetime.now()-t0).total_seconds())+' s')

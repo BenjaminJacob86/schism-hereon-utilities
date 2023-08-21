@@ -1231,8 +1231,16 @@ class bp_transect_newio():
       self.acc=cacc(acc) 
       self.acc.ds={}
       if nn:
+	  #unique mixes upo orde
        self.nn,iunq=np.unique(self.nn,return_index=True)
+       iunq=np.sort(iunq)
+       #self.lon,self.lat=np.asarray(s.lon)[self.nn][iunq],np.asarray(s.y)[self.nn][iunq] 
+       self.nn=self.nn[iunq] # those to lines should inhiobit resorting
        self.x,self.y=self.x[iunq],self.y[iunq]
+       from IPython import embed; embed()
+       self.lon,self.lat=np.asarray(s.lon)[self.nn],np.asarray(s.lat)[self.nn]#[iunq] 
+       #self.lon,self.lat=np.asarray(s.lon)[self.nn][iunq],np.asarray(s.y)[self.nn][iunq] 
+       #self.lon,self.lat=np.asarray(s.lon)[self.nn],np.asarray(s.y)[self.nn]
        p=p[iunq,:]
 	   
        self.acc.ds={}

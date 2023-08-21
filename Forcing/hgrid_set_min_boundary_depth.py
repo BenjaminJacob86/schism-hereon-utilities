@@ -10,7 +10,6 @@ import datetime as dt
 import os
 plt.ion()
 
-/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all
 
 dmin=3
 outname='hgrid_minbd_depth{:.2f}.gr3'.format(dmin)

@@ -26,14 +26,14 @@ from validation_statistics_and_plots import interp_to_data_time,QQplot, TaylorDi
 
 
 ########### SETTINGS #########
-pdfname="WAM_SCHISM_HS_Validation_2017b.pdf" # name of image pdf
+pdfname="SCHISM_HS_Validation_2017b.pdf" # name of image pdf
 image_output_dir='/gpfs/work/jacobb/data/validation/waves/pics/'
 skip_n_first_days=5 #skip first days of WWM where model is building up
 skip_n_first_days=np.timedelta64(skip_n_first_days,'1D')
 
 maxdate=np.datetime64('2017-10-31') # manually set maximumdate
 
-bouydir='/gpfs/work/jacobb/data/validation/waves/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
+bouydir='/gpfs/work/jacobb/data/Validation/Waves/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
 
 # WWM run directories containing model station output
 #'/gpfs/work/jacobb/data/RUNS/routine_GB_wave/from_mistral/Bmax1.52Code/','/gpfs/work/jacobb/data/RUNS/routine_GB_wave/from_mistral/Bmax1.3_succ_CodeCHange/',
@@ -270,6 +270,7 @@ def load_wwm_site(file):
 			ar=line.split()[:nheader]
 			for key,val in zip(header,ar):
 				data[key].append(val)
+			break	
 		for key in header[1:]:
 			data[key]=np.asarray(data[key],float)
 			
@@ -303,6 +304,8 @@ def load_wwm_site_multiple_files(files,write_joint_file=False):
 			if i==0:
 				header=line.split()
 				#data=dict.fromkeys(header)
+				if '#' in header:
+					header.remove('#')	
 				data={h:[] for h in header}#dict.fromkeys(header)
 				nheader=len(header)
 			

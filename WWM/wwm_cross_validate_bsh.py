@@ -29,21 +29,18 @@ skip_n_first_days=0 #skip first days of WWM where model is building up
 #skip_n_first_days=np.timedelta64(skip_n_first_days,'D')
 skip_n_first_days=dt.timedelta(days=skip_n_first_days)
 
-bouydir='/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/WAVE/bojen/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
+bouydir='/gpfs/work/jacobb/data/Validation/Waves/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
 
 # WWM run directories containing model station output
-WWMdirs=['/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_900s_onpiece/BETAMAX1.54/','/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/BetaMax2.4/','/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/BETAMAX2.4_ZWND_8m/',
-'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/FRCWW31.8/',
-'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/FRCWW31.43_Bmax1.54/',
-'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/FRCww3BetaMax1.8_BetaMax1.54/']
+WWMdirs=['//gpfs/work/jacobb/data/Validation/Waves/REF_seagrass/']
 
 #'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/FRCbdCHeck/',
 #2nd '/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_900s_onpiece/'
 #2nd 'WWM_Bmax_1.6'
-wwm_names=['WWM_Bmax_1.54','WWM_Bmax_2.4','WWM_Bmax_2.4_ZW_8m','WWM_Bmax_2.4_WW31.8','WWM_Bmx1.54_WW3_1.43','WWM_Bmx1.58_WW3_1.43']  # names of scenario for display
+wwm_names=['REF']  # names of scenario for display
 #,': WWM run with betamax inreased to 1.6'
-wwm_descriptions=[': WWM run with betamax of 1.54',': dkrz run with betamax increased to 2.4','WWM_Bmax_2.4 with zwind decreased from 12 to 8  enhance peaks',': WWM run with betamax of 2.4 and WW3 Forcing with increased BetaMax of 1.8 ',': fixed bd grid in latlon and bdcondition from neumann to dirichlet  Bmax WW3/WWM 1.43/1.54','Bmax WW3/WWM 1.8/1.54']
-comments='WWM runs with  betamax =1.54,1.6 were exactly(! numerically no differnce 1.6 run is disregarded) the same. Due to the late data coverage Fin3 should be ignored. WWM response from BETAMAX = 1.54 to 2.4 has a seemingly rather week effect and for some larger peaks even yields an decrease, while increase during growth phase (ELBE). subtantially postive effect is being close at  first large peak in (Elbe, Helgoland). The change of ZWIND from 10 to 08 for WMM ZWIND also had no effect on the results. Hence tuing will be done only with BETAMAX. However values of 2.4 are already very high. Next step is running WWM with WW3 forcing with increased betamax' #sentences following wwm and ww3 descriptions in pdf
+wwm_descriptions=['']
+comments='' #sentences following wwm and ww3 descriptions in pdf
 display_names=wwm_names
 
 # names of stations
@@ -56,21 +53,20 @@ keysWWM=['prep_ELBE', 'prep_FINO1', 'prep_FINO3', 'prep_HELGON']
 #keysWWM=['prep_ELBE', 'prep_FINO1', 'prep_FINO3', 'prep_HELGON']
 
 ## WWW3 ###
-addWW3=True
-ww3dirs=['/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_2017/longrun2/check_mergeVerena/BETAMAX1.43/','/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_2017/longrun2/check_mergeVerena/BETAMAX1.5/','/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_2017/longrun2/check_mergeVerena/BETAMAX1.8/','/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_2017/longrun2/check_mergeVerena/ZWND08/',
-'/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_2017/longrun2/check_mergeVerena/BetaMax2/']
+addWW3=False
+ww3dirs=['']
 ww3mesh='NBSext_bl.msh'
 ww3PointList='points.list'
 #ww3GridOutput==np.sort(glob(ww3dir+'mix_select_prev_post_run/'+'ww3.??????.nc'))# np.sort(glob(ww3dir+'defect_ncs/'+'ww3.????01.nc')) # ww3.201701.nc
-ww3PointOutput=[ww3dirs[0]+'ww3.2017_cat_01_03.nc',ww3dirs[1]+'ww3.2017cat0103.spec.nc',ww3dirs[2]+'ww3.2017cat0103.spec.nc',ww3dirs[3]+'ww3.2017cat0103.spec.nc',ww3dirs[4]+'ww3.2017cat0103.spec.nc'] #'ww3.2017_spec.nc'  # ww3 spectral output
-ww3_names=['WW3Bmax1.43','WW3Bmax1.5','WW3Bmax1.8','WW3ZWND08','WW3Bmax2.0']
-ww3_descriptions=[': WW3 run with default betamax of 1.43 ',': WW3 run with betamax inreased to 1.5 ',': WW3 run with betamax inreased to 1.8 ',': WW3 run with default betamax (1.43) but Zwind dereased to 0.8 to compensate lower ERA5 winds',': WW3 run with betamax inreased to 2.0 ']
+#ww3PointOutput=[ww3dirs[0]+'ww3.2017_cat_01_03.nc',ww3dirs[1]+'ww3.2017cat0103.spec.nc',ww3dirs[2]+'ww3.2017cat0103.spec.nc',ww3dirs[3]+'ww3.2017cat0103.spec.nc',ww3dirs[4]+'ww3.2017cat0103.spec.nc'] #'ww3.2017_spec.nc'  # ww3 spectral output
+ww3_names=['']
+ww3_descriptions=['']
 
 
 pdfname="neu_WWM_Validation_2017.pdf" # name of image pdf
 #####
 
-image_output_dir='/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/CompWW3_WWMRuns/'
+image_output_dir='/gpfs/work/jacobb/data/Validation/Waves/REF_seagrass/'
 
 varnameWWM='HS' ## WWM parameter to validate
 varnameBSH='Hs'
@@ -107,10 +103,11 @@ subdirs=glob(bouydir+'*')
 subdirs=np.sort([sdir[sdir.rindex('/')+1:] for sdir in subdirs])
 bouys=dict.fromkeys(subdirs)
 for subdir in subdirs:
+	#bouys[subdir]=bsh_spec(bouydir+'{:s}/{:s}_BSH.spec'.format(subdir,subdir))
 	bouys[subdir]=bsh_spec(bouydir+'{:s}/{:s}_BSH.spec'.format(subdir,subdir))
 #B=bouys[subdirs[0]] B.get_parameter('Hs')
 ################
-
+#ELB_BSH.spec
 
 
 

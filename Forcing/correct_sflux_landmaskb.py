@@ -1,12 +1,13 @@
 from netCDF4 import Dataset
 import cftime
 import numpy as np
-from datetime import datetime as dt
+
 import sys
 import os
 sys.path.insert(0,'/gpfs/home/jacobb/code/python/')
+sys.path.insert(0,'/home/g/g260114/git/schism-hereon-utilities/')
 from schism import *
-
+from datetime import datetime as dt
 import matplotlib
 matplotlib.use('agg')
 #matplotlib.use('GtkAgg')
@@ -21,13 +22,13 @@ cwd=os.getcwd()
 
 #########  S  E T  T  I N G S ##########################################
 # schism dir
-setupdir='/gpfs/work/jacobb/data/DATA/gen_sflux'
+setupdir='/work/gg0028/g260114/SETUPS/Ghana/'
 atmodir='/work/gg0028/g260114/SETUPS/Ghana/sflux/era5/'
 target_dir='/work/gg0028/g260114/SETUPS/Ghana/sflux/era5_mask_reduce/'#'schism-sflux_noextra_snow'
 
-setupdir='/work/gg0028/g260114/SETUPS/Ghana/'
-atmodir='era5_GB/'
-target_dir='sflux_fit_to_blacksea/' #'schism-sflux_noextra_snow'
+
+
+
 
 year0=2022
 endyear=2022
@@ -82,7 +83,7 @@ def create_reduced_grid(nc,inc,basedate,lonrange,latrange):
 	tv.standard_name = 'time'
 	tv.units = 'days since %4i-%02i-%02i %02i:%02i:%02i'%basedate
 	tv.base_date =  list(basedate)
-	ut = cftime.utime(tv.units)
+	#ut = cftime.utime(tv.units)
 
 	incv = inc.variables
 
@@ -94,8 +95,9 @@ def create_reduced_grid(nc,inc,basedate,lonrange,latrange):
 	nc.setncattr('history',(hstr+inc.getncattr('history')))
 
 	# write time
-	iut = cftime.utime(incv['time'].units)
-	tv[0:len(inc.dimensions['time'])] = ut.date2num(iut.num2date(incv['time'][:]))
+	#iut = cftime.utime(incv['time'].units)
+	#tv[0:len(inc.dimensions['time'])] = ut.date2num(iut.num2date(incv['time'][:]))
+	tv[0:len(inc.dimensions['time'])]=cftime.date2num(cftime.num2date(incv['time'][:],units=incv['time'].units),units=tv.units)
 	# write grid
 	nc.createDimension('nx_grid',len(loninds))
 	nc.createDimension('ny_grid',len(latinds))
