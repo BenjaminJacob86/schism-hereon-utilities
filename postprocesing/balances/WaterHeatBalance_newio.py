@@ -65,12 +65,13 @@ import xlwt
 
 
 ##### SETTINGS ########################################
-run_name='RUN24g'            # Name of Excelfile Carrying bilances
+run_name='LockExchange'            # Name of Excelfile Carrying bilances
 
 # directories foor RUN and atmospheric forcing
 #setupdir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24f/' #'/work/gg0028/g260114/RUNS/BLACKSEA/RUN24d/RUN24d/new_code/constant_bd/' 
 #setupdir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24f/' 
-setupdir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24g/' 
+setupdir='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24h/' 
+setupdir='/work/gg0028/g260114/RUNS/BLACKSEA/LockExchange/'
 sfluxdir=setupdir+'/sflux/'
 sflux_in=setupdir+'/sflux/'
 
@@ -92,7 +93,7 @@ kmlfile='/work/gg0028/SCHISM/schism-hzg-utilities/postprocesing/balances/OceanDB
 areas=['Black Sea', 'Sea of Azov','Sea of Marmara','Aegean Sea'] 
 ########
 years=range(2008,2008+1)     # years considered
-reftime=dt.datetime(2008,6,1,0,0,0)#+dt.timedelta(days=214) # fake shift to end to have a fullyear
+reftime=dt.datetime(2008,9,1,0,0,0)#+dt.timedelta(days=214) # fake shift to end to have a fullyear
 prec_years=np.arange(2008,2008+1)
 evap_years=np.arange(2008,2008+1)
 
@@ -255,7 +256,7 @@ def get_annual_mean_river_runoff(s,areas,years,startdate=dt.datetime(2007,6,1),e
 		
 		#to follow the logic of the code q read in from flux.th is modified, inserting the constant values as timeseries, in the order of where they would occur counting the order of boundaries
 		q2=np.zeros((q.shape[0],q.shape[1]+obdtype.count('const_river')))
-		q2[:,0]=q[:,0]
+		q2[:,0]=-q[:,0] # positiver irver inflow
 		
 		iconst=0 # index within qconst
 		ifluxth=1 # start 1 one becuase 0 is time
@@ -859,7 +860,7 @@ plt.title('averaging period ' + reftime.strftime('%Y%m%d')+ '-' + endtime.strfti
 plt.tight_layout()
 for i,val in enumerate([P,E,Rin,Bdout,S]):
 	plt.text(i-0.1,15,str(round(val,2)),rotation=90,fontsize=14)
-	
+plt.savefig(outfolder+varname+'mm_'+str(years[-1]),dpi=300)		
 
 
 

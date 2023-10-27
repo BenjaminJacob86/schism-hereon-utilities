@@ -1,0 +1,26 @@
+# ww3 modify deptsh
+# modify WW3 bathymetry to emulate SLR
+import numpy as np
+
+
+input_grid='NBSext_bl.msh'
+
+
+
+for SLR in [0.44,0.65,0.95]:
+	output_grid=input_grid[:input_grid.index('.')]+'{:d}mSLR.msh'.format(SLR)
+
+	fin=open(input_grid,'r'):q!
+	fout=open(output_grid,'w')
+	fin=open(input_grid,'r')
+
+	with open(input_grid,'r')as fin, open(output_grid,'w') as fout:
+		for i,line in enumerate(fin.readlines()):
+			if i==4:
+				counter=np.float(line)
+			if (i>4) & ((counter-1)>=0):
+				counter-=1
+				sep=line.split()
+				sep[-1]=str(np.float(sep[-1])+SLR) #add SLR
+				line=' '.join(sep)+ ' \n'
+			fout.write(line)

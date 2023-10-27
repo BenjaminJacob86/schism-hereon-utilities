@@ -477,12 +477,72 @@ class schism_setup(object):
   def read_gr3(self,filename):
       if not hasattr(self,'gr3'):
         self.gr3={}
-      self.gr3[filename.split('.')[0]] = np.loadtxt(filename,skiprows=2,max_rows=self.nnodes)[:,-1]
+      self.gr3[filename.split('.')[0]] = np.loadtxt(filename,skiprows=2,max_rows=self.nnodes)[:,3]
 
   def read_reg(self,filename):
       if not hasattr(self,'reg'):
         self.reg={}
       self.reg[filename.split('.')[0]] = np.loadtxt(filename,skiprows=3)
+
+
+  def create_region(self):
+      plt.ion()  
+      from matplotlib.widgets import PolygonSelector
+      
+      ph,cx,ax=self.plotAtnodes(self.depths)
+      plt.sca(ax)	  
+      self.selector = PolygonSelector(ax, lambda *args: None)
+      
+      if not hasattr(self,'reg'):
+            self.reg={}
+      
+      
+      print("Click on the figure to create a polygon.")
+      print("Press the 'esc' key to start a new polygon.")
+      print("Try holding the 'shift' key to move all of the vertices.")
+      print("Try holding the 'ctrl' key to move a single vertex.")
+      
+      print("call write_region to activate and save region to file")
+      print("call assign_in_region to set values for gr3 file")
+      input('press key when finished creating region')      	  
+      self.write_region()      	  
+
+  def write_region(self):
+      if hasattr(self,'reg'):
+        regname=input('enter region name without file extension: ')
+        self.reg[regname]=np.asarray(self.selector.verts)
+        #regname=list(self.reg.keys)[-1]
+        xy=self.reg[regname]
+        comment='Region written with write_reg'
+        with open(regname,'w') as f:
+          f.write(comment+'\n')
+          f.write('1\n')
+          f.write('{:d} 1\n'.format(xy.shape[0]))
+          np.savetxt(f,xy)
+		
+
+  def assign_in_region(self):	
+      from matplotlib.path import Path
+      if hasattr(self,'reg'):
+        gr_name=input('enter gr3 file name (without extension) to apply values in region: ')
+      
+      if not hasattr(self,'gr3'):
+        self.read_gr3(self,gr_name)
+      
+      value=float(input('enter value to apply over region: '))
+      regname=input('enter region name to apply values in: (avialable: ' ' '.lon(list(self.reg.keys()))+ ': ')
+      
+      xy=self.reg[regname]
+      RegPolyC=Path(list(zip(xy[:,0],xy[:,1])))
+      inpoints=RegPoly.contains_points(list(zip(d[:,0],d[:,1])))
+      
+      
+      outname=gr_name_regname_value+'.gr3'
+      
+      self.gr3[gr_name][inpoints]=value	
+      
+      print('saving updated region file as ' + str(outname))
+      self.dump_gr3_spat_var(self,outname,nodevalues,comment='gr3 by create_ic.py')	
 	  
 
   def dump_tvd_prop(self):

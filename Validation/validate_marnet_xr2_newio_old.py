@@ -50,14 +50,14 @@ from schism import * # import schism functions
 mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/' 					  # myocean
 mardir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/MO/'
 setupdir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/'
-ncdir=setupdir+'/outputs01/'
-year=2018		    # currently data between 2011 and 2018				
+ncdir=setupdir+'/outputs_all/'
+year=2017	    # currently data between 2011 and 2018				
 dtol=0.05           										   # distance tolerance in degree lon/lat 
 
 
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
-outdir=setupdir+'/tgvalid/'	   # output directory where images will be stored
+outdir=setupdir+'/marnet_valid/'	   # output directory where images will be stored
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
 Tmax=45
@@ -99,6 +99,7 @@ s.nntree = cKDTree(list(zip(s.lon,s.lat)))
 
 ######### initialize marnet Data located in SCHISM Domain #######
 marnet=glob.glob(mardir+'*_{:d}.nc'.format(year))	
+#marnet=glob.glob(mardir+'*{:d}*.nc'.format(year))	
 print('searching coordinates for available data in year {:d}'.format(year))
 coords=[]
 stations=[]

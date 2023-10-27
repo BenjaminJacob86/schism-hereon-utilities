@@ -5,7 +5,7 @@ SLR=1
 input_grid='NBSext_bl.msh'
 output_grid=input_grid[:input_grid.index('.')]+'{:d}mSLR.msh'.format(SLR)
 
-fin=open(input_grid,'r')
+fin=open(input_grid,'r'):q!
 fout=open(output_grid,'w')
 fin=open(input_grid,'r')
 
