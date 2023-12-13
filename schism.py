@@ -486,6 +486,7 @@ class schism_setup(object):
 
 
   def create_region(self):
+      """  create region file and sve to file"""        
       plt.ion()  
       from matplotlib.widgets import PolygonSelector
       
@@ -874,11 +875,11 @@ class schism_setup(object):
 
 	  
   # plot functions - using basemap
-  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None):
+  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
-      valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy):
-	  """
+      valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
+	  """  
 
       #cmap=plt.cm.jet # use colormap
       cmap.set_bad(drycolor,1) # set dry area value
@@ -920,6 +921,13 @@ class schism_setup(object):
       ax.set_extent(zoom_extend)
       ax.add_feature(land_10m,zorder=-2)
 
+      if add_boarders:	  
+          ax.add_feature(cfeature.BORDERS, linestyle=':')
+      if add_lakes:
+          ax.add_feature(cfeature.LAKES, alpha=0.5)
+      if add_rivers:		
+          ax.add_feature(cfeature.RIVERS)		  
+	  
       if (proj!='merc') & stock_image:
           ax.stock_img()
       #ph=plt.tripcolor(self.projx,self.projy,self.nvplt,nodevalues,shading='flat',mask=mask,cmap=cmap)

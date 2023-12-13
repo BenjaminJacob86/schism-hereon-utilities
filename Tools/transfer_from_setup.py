@@ -29,20 +29,27 @@ import pickle
 #own libraries
 sys.path.insert(0,'/gpfs/home/jacobb/code/python/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/PreProc/Setup2Other/')
+# @levante
+sys.path.insert(0,'/home/g/g260114/schism-hzg-utilities/')
+#sys.path.insert(0,'/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS/schism-hzg-utilities/') 
+sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/')
+
 from schism import *
-from schism_plots import *
+#from schism_plots import *
 from schism_interpolations import *
 
 
 
 ################# S E T T I N G S ##################################
 # source_setup
-#source_setup='/gpfs/work/jacobb/data/SETUPS/Europe/HighRes/'# '/gpfs/work/jacobb/data/SETUPS/Europe/HighRes/'
-#dest_setup='/gpfs/work/jacobb/data/RUNS/HighResCut/' #/gpfs/work/jacobb/data/SETUPS/Europe/ImprovedDanishStraits/'
-#source_setup='/gpfs/work/jacobb/data/RUNS/HighResCut/hot/'
+source_setup='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24L/' #'/work/gg0028/g260114/RUNS/BLACKSEA/LockExchange/'
+dest_setup='//work/gg0028/g260114/RUNS/BLACKSEA/RUN24L/Stitched_Grid/'
 
-source_setup='/gpfs/work/jacobb/data/SETUPS/NWBlackSea/setup/'
-dest_setup='/gpfs/work/jacobb/data/SETUPS/NWBlackSea/setup2/'
+source_setup='/work/gg0028/g260114/RUNS/BLACKSEA/LockExchange/'
+dest_setup='/work/gg0028/g260114/RUNS/BLACKSEA/RUN24L/V1/'
+
+vgrid_file='vgrid.in.old' # needs old vgrid format before modfication for parallel io
+
 
 if source_setup[-1]!='/':
 	source_setup+='/'
@@ -52,13 +59,15 @@ if dest_setup[-1]!='/':
 
 
 ## what inputs to clone from different setup
-do_bnd=1        # transfer boundaries
+do_bnd=0        # transfer boundaries
 do_vgrid=0      # transfer vgrid
-do_gr3=1        # transfer gr3 files
-do_ic=1        # transfer ic files
+do_gr3=0        # transfer gr3 files
+do_ic=0        # transfer ic files
 do_hot=0        # transfer hotsart
 do_vm_source=0  # transfer sources 
-do_bath=1       # transfer bathymetries
+do_bath=0      # transfer bathymetries
+do_prop=1       # transfer .prop files
+do_ll=0       # transfer hgrid.ll based on hgrid.gr3 nearest neighbours files
 
 hot_outname='hotstart_transfered.nc'
 ###################################################################
@@ -180,7 +189,8 @@ def transfer_bnd(sin,sout):
 
 # load source setup
 os.chdir(source_setup)
-sin=schism_setup(hgrid_file='hgrid.gr3',ll_file='hgrid.ll',vgrid_file='vgrid.in')
+sin=schism_setup(hgrid_file='hgrid.gr3',ll_file='hgrid.ll',vgrid_file=vgrid_file)
+
 
 # load dest_setup
 os.chdir(dest_setup)
@@ -190,6 +200,8 @@ sout=schism_setup(hgrid_file='hgrid.gr3')
 
 # create unstructured interpolant object from  sin to sout
 interpolant=unstructured_interpolant(sin.x,sin.y,sout.x,sout.y)
+
+
 
 if sin.x[0]!=sin.lon[0]:
 	in_cartesian=1
@@ -314,11 +326,11 @@ if do_vgrid:
 
 
 	plt.subplot(2,1,1)
-	ph,ch=sin.plotAtnodes(nlayers_old)
+	ph,ch,ax=sin.plotAtnodes(nlayers_old)
 	plt.title('old')
 	ch.set_label('# vert layers')
 	plt.subplot(2,1,2)
-	ph2,ch2=sout.plotAtnodes(nlayers_new)
+	ph2,ch2,ax2=sout.plotAtnodes(nlayers_new)
 	plt.title('coarse')
 	ch2.set_label('# vert layers')
 	plt.tight_layout()
@@ -382,7 +394,7 @@ class gr3file():  # for tris - add quads
 		self.nvdict = nvdict
 
 if do_gr3:
-	gr3files=glob(source_setup+'*gr3')
+	gr3files=glob.glob(source_setup+'*gr3')
 	gr3files=np.asarray(gr3files)
 	delinds=[]
 	for i in range(len(gr3files)):
@@ -403,9 +415,27 @@ if do_gr3:
 			print('error with file '+filei)
 			pass
 
+			
+if do_ll:
+	filei=gr3file=source_setup+'hgrid.ll'
+	gr3=gr3file(filei)
+	lon2=interpolant.interp_bary(gr3.x) # barycentric interpolation
+	lon2[interpolant.no_parents]=interpolant.interp_nn(np.asarray(gr3.x),interpolant.no_parents,tol_dist=643) # next neighbour interpolation for
+	lat2=interpolant.interp_bary(gr3.y) # barycentric interpolation
+	lat2[interpolant.no_parents]=interpolant.interp_nn(np.asarray(gr3.y),interpolant.no_parents,tol_dist=643) # next neighbour interpolation for
+	name='interped_'+filei[filei.rfind('/')+1:]
+	x=sout.x.copy()
+	y=sout.y.copy()
+	sout.x=lon2
+	sout.y=lat2
+	sout.dump_gr3_spat_var(name,sout.depths)
+	sout.x=x
+	sout.y=y
+
+			
 # interpolate .ic files			
 if do_ic:
-	gr3files=glob(source_setup+'*.ic')
+	gr3files=glob.glob(source_setup+'*.ic')
 	gr3files=np.asarray(gr3files)
 	delinds=[]
 	
@@ -422,13 +452,116 @@ if do_ic:
 		except:
 			print('error with file '+filei)
 			pass			
+
+
+if do_prop:
+
+	def find_parent_tri(s,xq,yq,dThresh=1000,latlon=False):
+		""" parents,ndeweights=find_parent_tri(xq,yq,dThresh=1000)
+			find parent for coordinates xq,yq within triangulation tris,xun,yun.
+			return: parent triangle ids (quads are splitted into triangles in a previous step) and barycentric weights of triangle coordinates.
+		"""    
+		if latlon:
+			xun=np.asarray(s.lon)
+			yun=np.asarray(s.lat)
+			dThresh=np.min((dThresh,1))
+		else:
+		 	xun=np.asarray(s.x)
+		 	yun=np.asarray(s.y)
+		
+		#% Distance threshold for Point distance
+		dThresh=dThresh**2
+		tris=np.asarray(s.nvplt)
+		trinr=np.arange(tris.shape[0])
+
+
+		dThresh=np.max(list(sin.resolution_by_nodes.values()))
+		
+		trisX,trisY=xun[tris],yun[tris]
+		#% orthogonal of side vecotrs
+		SideX=np.diff(trisY[:,[0, 1, 2, 0]],axis=1)
+		SideY=-np.diff(trisX[:,[0, 1, 2, 0]],axis=1)
+		
+		p=np.stack((xq,yq),axis=1)
+		parent=-1*np.ones(len(p),int)
+		for ip in range(len(p)):
+		  
+			dx1=(p[ip,0]-trisX[:,0])
+			dy1=(p[ip,1]-trisY[:,0])
+			subind=(dx1*dx1+dy1*dy1) < dThresh # preselection
+			subtris=trinr[subind]
 			
-sout.dump_tvd_prop() 
+			#% dot products #checks inside
+			parenti=(subtris[ (dx1[subind]*SideX[subind,0] + dy1[subind]*SideY[subind,0] <= 0) \
+					   & ((p[ip,0]-trisX[subind,1])*SideX[subind,1] + (p[ip,1]-trisY[subind,1])*SideY[subind,1] <= 0) \
+						 & ( (p[ip,0]-trisX[subind,2])*SideX[subind,2] + (p[ip,1]-trisY[subind,2])*SideY[subind,2] <= 0) ][:])
+			if len(parenti)>1:
+				parent[ip]=parenti[0]
+			elif len(parenti)>0:
+				parent[ip]=parenti
+		  #else:
+			#from IPython import embed; embed()
+			
+		  
+		# tri nodes
+		#xabc=xun[tris[parent]]
+		#yabc=yun[tris[parent]]
+		
+		# barycentric weights
+		#divisor=(yabc[:,1]-yabc[:,2])*(xabc[:,0]-xabc[:,2])+(xabc[:,2]-xabc[:,1])*(yabc[:,0]-yabc[:,2])
+		#w1=((yabc[:,1]-yabc[:,2])*(xq-xabc[:,2])+(xabc[:,2]-xabc[:,1])*(yq-yabc[:,2]))/divisor
+		#w2=((yabc[:,2]-yabc[:,0])*(xq-xabc[:,2])+(xabc[:,0]-xabc[:,2])*(yq-yabc[:,2]))/divisor
+		#w3=1-w1-w2
+		
+		return parent #,np.stack((w1,w2,w3)).transpose() 	  
+
+
+
+	propfiles=glob.glob(source_setup+'*prop')
+	
+	#xq,yq=np.asarray(sin.x),np.asarray(sin.y)
+	#parent,w=sout.find_parent_tri(xq,yq,dThresh=4000,latlon=False)
+	#lonlat not good enough
+	xout,yout=np.asarray(sout.x),np.asarray(sout.y)
+	# elemenet cents
+	cx=np.zeros(sout.nelements)
+	cy=np.zeros(sout.nelements)
+	for i,elem in enumerate(sout.nvdict.values()):
+		elem=np.asarray(elem)-1 
+		cx[i]=xout[elem].mean()
+		cy[i]=yout[elem].mean()
+	nn_elem=np.asarray([sin.find_nearest_element(cx[i],cy[i],latlon=False,mindepth=-100) for i in range(sout.nelements)])-1
+	
+	# takes a while finding all parents
+	dThresh=np.max(list(sin.resolution_by_nodes.values()))
+	parents,w=sin.find_parent_tri(cx,cy,dThresh=dThresh,latlon=False)
+	
+	# thresholds needs to be in line with reso
+	# resolution x 3
+	#nn_elem=# parents[s.nvplt2nvp]
+	nn_elem=sin.nvplt2nvp[parents]
+	
+	
+	#parents=find_parent_tri(sin,cx,cy,dThresh=dThresh,latlon=False)
+	
+	propout=np.zeros((sout.nelements,2))
+	propout[:,0]=np.arange(1,sout.nelements+1)
+	for filei in propfiles:
+		print('interpolating file'+filei)
+		propin=np.loadtxt(filei)
+		propout[:,1]=propin[nn_elem,1]	
+		np.savetxt(dest_setup+filei.split('/')[-1],propout)
+
+
+		
+#sout.dump_tvd_prop() 
 ##################################################
 
 
-
-
+plt.figure()
+sin.plotAtnodes(propin[sin.nvplt2nvp,1])
+plt.figure()
+sout.plotAtnodes(propout[sout.nvplt2nvp,1])
 
 
 

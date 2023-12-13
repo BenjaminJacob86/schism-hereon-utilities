@@ -4,6 +4,7 @@
 # including time series at given location coords
 """
 
+
 #export OMP_NUM_TtimHREADS=4
 import os, sys
 import numpy as np
@@ -48,36 +49,35 @@ warnings.filterwarnings("ignore")
 ########## settings ##################################################
 # directories (have to end with '/')
 # SCHIMS grid files
-setupdir=['/work/gg0028/g260114/SETUPS/NWBS2b',]
-#setupdir=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/']
-#setupdir+=['/work/gg0028/g260114/SETUPS/NWBS/setup/newcode/NWBS_danube_repair/NWBS_vgrid_re/Gauss_filter_grid/']
+#setupdir=['/work/gg0028/g260114/RUNS/Ghana/RUNV3/',]
+setupdir=['/work/gg0028/g260114/RUNS/Ghana/RUNV3_2D/','/work/gg0028/g260114/RUNS/Ghana/RUNV3_2D_dt_120/']
+#oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
+#oceandir=['/work/gg0028/g260114/SETUPS/GhanaV3/forcing/']
+oceandir=['/work/gg0028/g260114/SETUPS/GhanaV3/forcing/6Hi/']
 
 
-oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
+ncdir=[setupdir[0]+'/outputs/',setupdir[1]+'/outputs/'] # where the outputs are.
 
-ncdir=[setupdir[0]+'/outputs_all/'] # where the outputs are.
-#ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
-#ncdir=[setupdir[0]+'outputs_hotstart_not_freshened/']
 
-#outdir='/work/gg0028/g260192/SEARECAP/validationTest'
 
 outdir=setupdir[0]+'imageComp/' #'/work/gg0028/g260114/postproc/modelcomp/comp4/'
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
-names=['CMEMS','NWBS2b']#,'NWBS_vgrid_re','NWBS_GaussFilter',]
+#names=['CMEMS Global','SCHISM Ghana']
+names=['CMEMS Global','Ghana2D','Ghana2D_dt120']
 
-#varnames=['temp','ssh','salt']	#varname ['ssh',] if only one has to have ,
-#varnames=['temp','salt']
-varnames=['ssh',]
+#varnames=['ssh','temp','salt']
+varnames=['ssh']
 sdictvnames = {'temp':'temperature','ssh':'zCoordinates','salt':'salinity'}
-min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
-difflims={'ssh':1,'salt':4,'temp':4}     # # axis limits +- in difference plot
+#min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
+min_max={'ssh':(-.2,.2),'salt':(0,36),'temp':(5,25)}	# axis range for variables
+difflims={'ssh':0.3,'salt':4,'temp':4}     # # axis limits +- in difference plot
 dthours={'ssh':3,'salt':12,'temp':12}	# make plot each dthours hour
 ndays_ts={'ssh':2,'salt':30,'temp':30}             # nr of days depicted in time series subplot
 
 # considrede time periods and steps for vriables
-year0=2021
-year1=2022
+year0=2022
+year1=2023
 vartimes={'ssh':{'startdate':dt.datetime(year0,11,2,1,0),'enddate':dt.datetime(year1,11,2,1,0),'step[hours]':1},\
 'salt':{'startdate':dt.datetime(year0,11,2,12,0),'enddate':dt.datetime(year1,2,1,12,0),'step[hours]':24},\
 'temp':{'startdate':dt.datetime(year0,11,2,12,0),'enddate':dt.datetime(year1,2,1,12,0),'step[hours]':24},\
@@ -86,9 +86,16 @@ vartimes={'ssh':{'startdate':dt.datetime(year0,11,2,1,0),'enddate':dt.datetime(y
 
 # coords for time series
 # helgoland
-lat,lon = 43, 29
-limx=((27.3,31.8))	#((-1.14,9.84))
-limy=((41,47))	#((49.7,56.21))
+#lat,lon = 43, 29
+# limx=((27.3,31.8))	#((-1.14,9.84))
+#limy=((41,47))	#((49.7,56.21))
+
+
+lat,lon = 5.4, 1
+limx=((-0.1,1.75))	#((-1.14,9.84))
+limy=((5.1,6.25))	#((49.7,56.21))
+
+
 
 dthour=1
 ndays=25 # Run durations
@@ -138,8 +145,13 @@ class cmems():
 		#self.nc = netCDF4.Dataset(file)
 		sv = xr.open_mfdataset(files)
 		ndims = len(sv.dims)
-		self.lon = sv['lon'][:].data#[lonslice]
-		self.lat = sv['lat'][:].data#[latslice]
+		try:
+			self.lon = sv['lon'][:].data#[lonslice]
+			self.lat = sv['lat'][:].data#[latslice]
+		except:
+			self.lon = sv['longitude'][:].data#[lonslice]
+			self.lat = sv['latitude'][:].data#[latslice]
+		
 		if ndims == 4:
 			self.d = -sv['depth'][:].data
 			exec("self.{:s} = sv['{:s}'][:,:,:,:]".format(varname, self.vardicts[varname]))
@@ -184,9 +196,9 @@ class cmems():
 			deltaT = np.asarray([ np.abs(ti - time).total_seconds() for ti in self.ts[nn]]) #seconds
 			w = (1 - deltaT/deltaT.sum())	
 			if ndims == 3:
-				exec("self.slab = (w[0] * self.{:s}[nn[0], :, :] + w[1] * self.{:s}[nn[1], :, :])".format(varname,varname))
+				exec("self.slab = (w[0] * self.{:s}[nn[0], :, :] + w[1] * self.{:s}[nn[1], :, :]).squeeze()".format(varname,varname))
 			elif ndims == 4:
-				exec("self.slab = (w[0] * self.{:s}[nn[0], layer, :, :] + w[1] * self.{:s}[nn[1], layer, :, :])".format(varname,varname))
+				exec("self.slab = (w[0] * self.{:s}[nn[0], layer, :, :] + w[1] * self.{:s}[nn[1], layer, :, :]).squeeze()".format(varname,varname))
 	
 #  def get_hov(self,coords,varname):		
 #    """ Generate hovmoeller data for nextneighbour coordinates of coords """
@@ -307,6 +319,18 @@ elif 1:
 	Tfiles = np.sort(glob.glob(oceandir[0]+'*TEM*.nc'))
 	Sfiles = np.sort(glob.glob(oceandir[0]+'*PSAL*.nc'))
 	SSHfiles = np.sort(glob.glob(oceandir[0]+'*ASLV*.nc'))
+	
+	if len(Tfiles)==0:
+		Tfiles = np.sort(glob.glob(oceandir[0]+'*tem*.nc'))
+		Sfiles = np.sort(glob.glob(oceandir[0]+'*sal*.nc'))
+		SSHfiles = np.sort(glob.glob(oceandir[0]+'*ssh*.nc'))
+
+	if len(Tfiles)==0:
+		Tfiles = np.sort(glob.glob(oceandir[0]+'*thetao*.nc'))
+		Sfiles = np.sort(glob.glob(oceandir[0]+'*so*.nc'))
+		SSHfiles = np.sort(glob.glob(oceandir[0]+'*ssh*.nc'))
+
+		
 	#date=reftime
 	moc=cmems(Tfiles, 'temp') # this dask handle
 	moc.update_var(Tfiles, 'temp')  #  if loaded they get nd array - quickfix so load again temp to have variables at same type
@@ -709,9 +733,11 @@ for key in vartimes.keys():
 #		#f.flush()
 #
 ########### re plot #########
+tdata={name:[] for name in names} 
+ydata={name:[] for name in names} 
 
 for varname in varnames:
-	break
+	
 	ntimes=np.int((vartimes[varname]['enddate']-vartimes[varname]['startdate'])/dt.timedelta(hours=vartimes[varname]['step[hours]']))+1
 	times=[vartimes[varname]['startdate']+ ti*dt.timedelta(hours=vartimes[varname]['step[hours]']) for ti in range(ntimes)]
 	time=times[0]
@@ -746,7 +772,7 @@ for varname in varnames:
 			plt.set_cmap('jet')
 			if not 'schism' in str(type(model)):
 				model.get_slab(time,varname,layer=0)
-				exec('ph{:d}=plt.pcolormesh(model.LON,model.LAT,model.slab)'.format(i))
+				exec('ph{:d}=plt.pcolormesh(model.LON,model.LAT,model.slab.squeeze())'.format(i))
 				plt.colorbar(extend='both')
 				plt.title(names[i]+ ' ' + str(model.t)[5:])
 			else:
@@ -780,7 +806,7 @@ for varname in varnames:
 							pass
 						else:
 							mplot=np.ma.masked_array(model2.slab[model2.nn[i]],mask=model2.masks[i])-model.slab
-							exec('ph{:d}=plt.pcolormesh(model.LON,model.LAT,mplot)'.format(count))
+							exec('ph{:d}=plt.pcolormesh(model.LON,model.LAT,mplot.squeeze())'.format(count))
 							#eval('phs.append(ph{:d})'.format((i+1)*nx+j+1))
 							eval('phs.append(ph{:d})'.format(count))
 							plt.colorbar(extend='both')
@@ -843,8 +869,8 @@ for varname in varnames:
 		axes[0][0].plot(lon,lat,'r+')
 		# update figures in loop
 		
-		tdata={name:[] for name in names} 
-		ydata={name:[] for name in names} 
+		#tdata={name:[] for name in names} 
+		#ydata={name:[] for name in names} 
 		for i,model in enumerate(models):
 			if not 'schism' in str(type(model)):
 				tdata[names[i]].append(model.t)

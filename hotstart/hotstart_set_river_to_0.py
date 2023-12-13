@@ -11,8 +11,8 @@ from netCDF4 import Dataset
 from matplotlib import path
 
 
-ncfilein='BS_hotd.nc'
-ncfileout='BS_hot_correct_river.nc'
+ncfilein='GB_hot_jun202301.nc'
+ncfileout='GB_hot_jun202301_river.nc'
 
 
 s=schism_setup()

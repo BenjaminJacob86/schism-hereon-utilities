@@ -24,21 +24,51 @@ nrs=list(np.asarray(nrs)[np.argsort(nrs)])
 
 
 s0dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/' # mother grid
-#s1dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/'                    # desitiantion grid reduced bd
+s1dir='/work/bg1186/g260094/SNS/SNSE_01a/'   # 3d run
+s1dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/'                    # desitiantion grid reduced bd
 #s2dir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/'					   # destination grid full bd
 s1orgdir='/work/gg0028/g260114/RUNS/BLACKSEA/NWBS2b_BSRUN24d_downscaling/'
 
 os.chdir(s1orgdir)
 s1org=schism_setup()
 os.chdir(s0dir)
-s0=schism_setup(hgrid_file='bg.gr3')
-#os.chdir(s1dir)
-s1=schism_setup(hgrid_file='fg.gr3')
+s0=schism_setup(hgrid_file='bg.gr3',vgrid_file='vigrid.bg')
+os.chdir(s1dir)
+s1=schism_setup()
+#s1=schism_setup(hgrid_file='fg.gr3',vgrid_file='vigrid.fg')
 
 nvertmax=21 #max number of vertical layers in destination grid
 
-#acc=schism_output2('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/sub').nc # to much space
+
+# load input access
+acc=schism_output2('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/sub/').nc # to much space
 os.chdir('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/ClimateProj/forcingFromSNS/')
+
+
+
+############## load schism info ###############
+s=s1
+lon=np.asarray(s.lon)
+lat=np.asarray(s.lat)
+# detect at which boundaries forcing has to be applied
+with open('bctides.in') as f:
+	openbd_segs=[]
+	bd=0
+	for line in f.readlines()[4:]:
+		print(line)
+		splitted=line.split()
+		bd+=np.sum([val.isdigit() for val in splitted[:5]])==5 #is openboundary 
+		if (splitted[1:5]==['4', '4', '4', '4']) | (splitted[1:5]==['5', '5', '5', '5']):
+			openbd_segs.append(bd-1)
+print('create forcing for open boundaries '+str(openbd_segs))	
+ibd=np.hstack([np.asarray(s.bdy_segments[bdseg])-1 for bdseg in openbd_segs])		
+
+d=-np.asarray(s.depths)[ibd] # ant positive (here negative later multiplired with sigma)) values to allow mor effective interpolation
+bdlon=lon[ibd]
+bdlat=lat[ibd]
+depths=np.asarray(s.depths)
+bdcoords=np.asarray(list(zip(bdlon,bdlat)))
+###################################################
 
 
 appendbds=np.asarray([ibd-1 for ibd in s1org.bdy_segments[0] if ibd not in s1.bdy_segments[0]])

@@ -35,7 +35,7 @@ clear all; close all;
 
 
 % %%%%%%%% INPUT INFORMATION %%%% %%%%%%%%%%%%/gpfs/home/hosseini/PGOS_2D_R2
-
+%keyboard
 %% 0 A) where is OceanMesh2D saved - search for tide_fac_constants.mat in there
 oceanmesh_dir='/gpfs/home/jacobb/OceanMesh2D-master/';
 addpath(genpath(oceanmesh_dir))
@@ -53,14 +53,14 @@ fes_current_dir='/gpfs/work/jacobb/data/DATA/Tides/fes2014a_currents/';
 
 %% 0 c)  where resides the hgrid.gr3 and hgird.ll files ?
 %rundir='/gpfs/work/jacobb/data/RUNS/Europe/';
-rundir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GermanBight_HR_Ballje';%
-bounodes=extract_open_nodes(strcat(rundir,'hgrid.gr3')); 
+rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/';%
+bounodes=extract_open_nodes(strcat(rundir,'hgrid.ll'));  % need obundaries in hgrid.ll
 %% 1- where to save bctides.in?
 %savedirs='/gpfs/work/jacobb/data/RUNS/Europe/tides/';
-savedirs='/gpfs/work/jacobb/data/SETUPS/GermanBight/GermanBight_HR_Ballje/tides/';
+savedirs='/gpfs/work/jacobb/data/SETUPS/GB_template/';
 %% 2- Specify time to run model
-t_s='01-Feb-2011 00:00:00'; % Start
-t_e='01-Aug-2011 00:00:00'; % Finish
+t_s='01-Jan-2023 01:00:00'; % Start
+t_e='01-Feb-2023 00:00:00'; % Finish
 %% 3- Specify how many tidal constituents you expect to run?
  incnstit = {'M2','S2','N2','K2','K1','O1','Q1','P1'};
  
@@ -70,7 +70,9 @@ t_e='01-Aug-2011 00:00:00'; % Finish
 % 'L2','K2','K1','J1','EPS2','2N2'};
 
 %% 4- Select flag options (e.g run with tidal elevation only)
-iflag=2;            % 1: only tidal elevations; 2: elevations + uv velocity;
+iflag=3;            % 1: only tidal elevations; 2: elevations + uv velocity;
+					% Test BJ iflag=3   only velocity
+
 
 % forcing boundary format
 ops=[5 5 4 4];  % refer to SCHSIM manuals for details.
@@ -127,13 +129,15 @@ end
 pts_data=bounodes{hh}; % Number of boundary/nodes
 [amp,phase ]= gen_harm_FES_SCHISM(iflag, const,pts_data,fes_elevetion_dir,fes_current_dir);
 
-  
-for i=1:length(const)
-  fprintf(fid,'%s\n',obj.f15.tipotag(i).name);
-  fprintf(fid,'%f %f\n',[amp(:,i,1) phase(:,i,1)]');
-end %for
 
-if(iflag==2)
+if iflag ~=3 % Test BJ   
+	for i=1:length(const)
+	  fprintf(fid,'%s\n',obj.f15.tipotag(i).name);
+	  fprintf(fid,'%f %f\n',[amp(:,i,1) phase(:,i,1)]');
+	end %for
+end
+	
+if(iflag>=2)
   for i=1:length(const)
     fprintf(fid,'%s\n',obj.f15.tipotag(i).name);
     fprintf(fid,'%f %f %f %f\n',[amp(:,i,2) phase(:,i,2) amp(:,i,3) phase(:,i,3)]');
@@ -622,7 +626,14 @@ function [amp,phase ]= gen_harm_FES_SCHISM(iflag, const,pts_data,fes_elevetion_d
 npt=size(pts_data,1);
 
 %miss_value=1.e10; %junk value
-for ifl=1:2*iflag-1 %loop over elev, u,v
+
+if iflag==3
+	variables=[2 3]
+else
+	variables=1:2*iflag-1
+end 
+%for ifl=1:2*iflag-1 %loop over elev, u,v
+for ifl=variables %loop over elev, u,v
 %-----------------------------------------------------------
 for i=1:length(const)
   if(ifl==1)
@@ -679,6 +690,7 @@ for i=1:length(const)
     I=find(lon>=lon2,1); %find 1st entry
     J=find(lat>=lat2,1);
     if(I<=1 || J<=1) 
+	%if(I<=1 | J<=1) 
       disp('Failed to find an interval'); [j lon2 lat2 I J]
       error('Bomb out'); 
     end
@@ -703,8 +715,13 @@ for i=1:length(const)
             
         
         %error('All junks for amp:'); 
-            keyboard
-            error('All junks for amp:'); 
+			disp('All junks for amp: search in thrid order region')
+			amp_min=min(min(amp0(I+[-2:+2],J+[-2:+2]))); % 2 minimun in second order region
+		     if(amp_min>100 || amp_min<0)	
+			            keyboard
+				error('All junks for amp:'); 
+			 end
+			
         end
       else %use min
         amp(j,i,ifl)=amp_min;
@@ -712,6 +729,8 @@ for i=1:length(const)
     else
       tmp1=ratx*amp0(I-1,J-1)+(1-ratx)*amp0(I,J-1);
       tmp2=ratx*amp0(I-1,J)+(1-ratx)*amp0(I,J);
+	  disp(ifl)
+	  %keyboard
       amp(j,i,ifl)=tmp1*raty+tmp2*(1-raty);
     end %amp_max
 
@@ -735,9 +754,16 @@ for i=1:length(const)
         % keyboarc
         
               if(pha_min<0 ||  pha_min>370)
+				pha_min=min(min(pha0(I+[-2:+2],J+[-2:+2]))); % 2 minimun in second order region
+				phase(j,i,ifl)=pha_min; % use min
+
+              if(pha_min<0 ||  pha_min>370)
                  keyboard
                  error('junk phase')
                   
+              end                 
+
+				 
               end
         
       end

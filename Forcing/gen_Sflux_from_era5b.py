@@ -6,26 +6,33 @@ import numpy as np
 from datetime import datetime as dt
 import os
 
-# removed adding snowfall to totl precip
-year0=2022
+# use within a year
+year0=2023
 startyear=year0 #07
-endyear=2022
+endyear=2023
 years=range(startyear,endyear+1)
-month0_year0=1
 
-base_dir='/work/gg0028/g260114/SETUPS/Ghana/sflux/era5/' #'/gpfs/work/grayek/storage/DOWNL_ERA5/'
-evap_dir='/gpfs/work/jacobb/data/DATA/DOWNL_ERA5/'
-lat_sens_dir='/gpfs/work/jacobb/data/DATA/DOWNL_ERA5/'
+from glob import glob
+
+
+
+erafiles=np.sort(glob('ERA5*'))
+file0=erafiles[0]
+month0_year0=int(file0[file0.index('.')-2:-3])
+nmonth=len(erafiles)
+
+base_dir='./'
+evap_dir=''
+lat_sens_dir=''
 # daten jetzt auf mistral: /work/gg0028/g260099/ERA_INTERIM/RAW_ERA5_CDS
-#target_dir='/gpfs/work/jacobb/data/RUNS/BlackSea/RUN24d/sflux_from_era5_spfh_from_pl/'
-target_dir='/work/gg0028/g260114/SETUPS/Ghana/sflux/era5/'
+target_dir='./era5/'
 
 do_prec=1       # do precipiation files
 do_non_prec=1   # do other files
 
 
 load_spfh=False # True load specific humidity from era forcases. Else compute from 2m dew point 
-spfh_dir='/gpfs/work/jacobb/data/DATA/DOWNL_ERA5/spfh/'
+spfh_dir=''
 
 
 if not os.path.exists(target_dir):
@@ -114,7 +121,7 @@ for year in years:
 	else:
 		 months=range(1,12+1) 	
 
-	for month in months:
+	for month in months(:nmonth):
 		print('month:' +str(month))
 		# open input file
 		inncfile='%s/ERA5CDS%04d%02d.nc'%(base_dir,year,month)
@@ -393,3 +400,33 @@ for o,l in zip(s.bdy_segments,s.land_segments):
 bd=np.asarray(bd)-1
 lon,lat=np.asarray(s.lon),np.asarray(s.lat)
 plt.plot(lon[bd],lat[bd])
+
+
+
+
+import os
+
+""" link date carrayin atmospheric file name fron dwd_script.m to alphanumerical format expexcted by schism  """
+
+indir=target_dir #'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/sflux_new/out_dwd_script/'
+linkdir=os.getcwd()+'/' #indir #'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/sflux_new/'
+
+
+air=list(np.sort(glob(indir+'*air*')))
+rad=list(np.sort(glob(indir+'*rad*')))
+prc=list(np.sort(glob(indir+'*prec*')))
+n=0
+#for i in range(len(air)): 
+for i,files in enumerate(zip(air,rad,prc)):
+	#fair,frad,fprc=files
+	fair,frad,fprc=air[i],rad[i],prc[i]
+	n=i+1
+	#cmd='ln -s {:s} {:s}sflux_air_1.{:04d}.nc'.format(fair,linkdir,n)
+	os.system('ln -s {:s} {:s}sflux_air_1.{:04d}.nc'.format(fair,linkdir,n))
+	os.system('ln -s {:s} {:s}sflux_rad_1.{:04d}.nc'.format(frad,linkdir,n))
+	os.system('ln -s {:s} {:s}sflux_prc_1.{:04d}.nc'.format(fprc,linkdir,n))
+print('linked ' +str(n) +' files')
+
+
+
+

@@ -11,6 +11,7 @@ call: python genHot.py
 import os
 import sys
 sys.path.append(os.environ['HOME']+'/code/python/')
+sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
 import numpy as np
 import netCDF4
 from scipy.spatial import cKDTree
@@ -32,10 +33,10 @@ from schism import schism_setup
 #################### Settings ########################################
 
 # output setup - create a hot start for this setup
-destination_dir='/gpfs/work/jacobb/data/RUNS/Europe/'
-hotoutname='Eu_hot_jun2012.nc'    # name of hotstart.nc file which will be created as output 
+destination_dir='//gpfs/work/jacobb/data/SETUPS/GB_template/'
+hotoutname='GB_hot_jun202301.nc'    # name of hotstart.nc file which will be created as output 
 
-sigma=False   # True: Sigma  Flase: LSC2
+sigma=True   # True: Sigma  Flase: LSC2
 nsigma=21
 
 plothot=True
@@ -73,13 +74,13 @@ prio['jannsen']=0
 
 
 prio['amm15']=1
-fileS='/work/gg0028/g260099/AMM15/2017/metoffice_foam1_amm15_NWS_SAL_b20170102_hi20170101.nc'
-fileT='/work/gg0028/g260099/AMM15/2017/metoffice_foam1_amm15_NWS_TEM_b20170102_hi20170101.nc'
+fileS='/gpfs/work/jacobb/data/SETUPS/GB_template/forcing/download_cmems_GB/metoffice_foam1_amm15_NWS_SAL_20230115.nc'
+fileT='/gpfs/work/jacobb/data/SETUPS/GB_template/forcing/download_cmems_GB/metoffice_foam1_amm15_NWS_TEM_20230115.nc'
 
 
-prio['amm']=0  # replacement for amm15, amm7 #hopefully handles all
-fileS='/gpfs/work/jacobb/data/DATA/Download/motuclient-python-v1.8.4/blacksea/bs_mean_sal_20160601.nc'
-fileT='/gpfs/work/jacobb/data/DATA/Download/motuclient-python-v1.8.4/blacksea/bs_mean_tem_20160601.nc'
+#prio['amm']=0  # replacement for amm15, amm7 #hopefully handles all
+#fileS='/gpfs/work/jacobb/data/DATA/Download/motuclient-python-v1.8.4/blacksea/bs_mean_sal_20160601.nc'
+#fileT='/gpfs/work/jacobb/data/DATA/Download/motuclient-python-v1.8.4/blacksea/bs_mean_tem_20160601.nc'
 
 ###############################################################################
 
@@ -1088,10 +1089,10 @@ if prio['amm15']>0:
     srcdata+=[amm15]
     uselist+=['amm15']
 
-if prio['amm']>0:    
-    amm=amm(fileT,fileS,domain_rect)
-    srcdata+=[amm]
-    uselist+=['amm']
+#if prio['amm']>0:    
+    #amm=amm(fileT,fileS,domain_rect)
+    #srcdata+=[amm]
+    #uselist+=['amm']
 	
 	
 #poly=np.loadtxt('/work/gg0028/g260114/RUNS/Europe3.0/hotstarts/nbs_bound.xy')[:,1:]  # limit for jannsen usage area

@@ -16,7 +16,7 @@ class unstructured_interpolant:
 	""" Interpolation Object From Unstructrured Data or triangular grid nodes to xy coordinates. Call unstructured_interpolant( s,xun,yun,xq,yq,eff0=1e-12). Checks for Parents for Barycentric Interpolation and Next neighbours for nn interpolation as altornative for points outside triangles."""
 
 		
-	def __init__(self, s,xun,yun,xq,yq,eff0=1e-12):
+	def __init__(self, xun,yun,xq,yq,eff0=1e-12):
 
 		# points grid from
 		self.xy=[[xun[i],yun[i]] for i in range(len(xun))] # pooint pairs of nodes
@@ -28,10 +28,9 @@ class unstructured_interpolant:
 
 		def interp_weights(self):
 		    tri = qhull.Delaunay(self.xy)
-			tri.simplices=s.nvplt
+		    #tri.simplices=self.nvplt
 		    simplex = tri.find_simplex(self.xyq) # -1 when not found
-			# can i overwrite simlices?
-			vertices = np.take(tri.simplices, simplex, axis=0)
+		    vertices = np.take(tri.simplices, simplex, axis=0)
 		    temp = np.take(tri.transform, simplex, axis=0) # transform to barycentric coordinates
 		    delta = self.xyq - temp[:, 2]
 
