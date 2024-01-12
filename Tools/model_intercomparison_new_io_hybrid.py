@@ -50,37 +50,43 @@ warnings.filterwarnings("ignore")
 # directories (have to end with '/')
 # SCHIMS grid files
 #setupdir=['/work/gg0028/g260114/RUNS/Ghana/RUNV3/',]
-setupdir=['/work/gg0028/g260114/RUNS/Ghana/RUNV3_2D/','/work/gg0028/g260114/RUNS/Ghana/RUNV3_2D_dt_120/']
-#oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
-#oceandir=['/work/gg0028/g260114/SETUPS/GhanaV3/forcing/']
 oceandir=['/work/gg0028/g260114/SETUPS/GhanaV3/forcing/6Hi/']
+setupdir=['/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_NWF/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_EWF/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_FIT/']
+
+addAMM=True # add AMM as first model
+
+names=setup_names=['NWF','EWF','FIT']
 
 
-ncdir=[setupdir[0]+'/outputs/',setupdir[1]+'/outputs/'] # where the outputs are.
 
+oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
+ncdir=[setupdir[i] + 'outputs/' for i in range(len(setup_names))]
 
-
-outdir=setupdir[0]+'imageComp/' #'/work/gg0028/g260114/postproc/modelcomp/comp4/'
+outdir='/work/gg0028/g260114/PROJECTS/OLAMUR/comps2/' #setupdir[0]+'comps/'
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
 #names=['CMEMS Global','SCHISM Ghana']
-names=['CMEMS Global','Ghana2D','Ghana2D_dt120']
+#names=['CMEMS Global','Ghana2D','Ghana2D_dt120']
 
-#varnames=['ssh','temp','salt']
-varnames=['ssh']
+if addAMM:
+	names=['CMEMS',]+names
+
+
+varnames=['ssh','temp','salt']
+#varnames=['ssh']
 sdictvnames = {'temp':'temperature','ssh':'zCoordinates','salt':'salinity'}
 #min_max={'ssh':(-1,1),'salt':(0,25),'temp':(5,25)}	# axis range for variables
-min_max={'ssh':(-.2,.2),'salt':(0,36),'temp':(5,25)}	# axis range for variables
-difflims={'ssh':0.3,'salt':4,'temp':4}     # # axis limits +- in difference plot
+min_max={'ssh':(-2,2),'salt':(0,36),'temp':(5,25)}	# axis range for variables
+difflims={'ssh':0.1,'salt':2,'temp':2}     # # axis limits +- in difference plot
 dthours={'ssh':3,'salt':12,'temp':12}	# make plot each dthours hour
 ndays_ts={'ssh':2,'salt':30,'temp':30}             # nr of days depicted in time series subplot
 
 # considrede time periods and steps for vriables
-year0=2022
-year1=2023
-vartimes={'ssh':{'startdate':dt.datetime(year0,11,2,1,0),'enddate':dt.datetime(year1,11,2,1,0),'step[hours]':1},\
-'salt':{'startdate':dt.datetime(year0,11,2,12,0),'enddate':dt.datetime(year1,2,1,12,0),'step[hours]':24},\
-'temp':{'startdate':dt.datetime(year0,11,2,12,0),'enddate':dt.datetime(year1,2,1,12,0),'step[hours]':24},\
+year0=2020
+year1=2020
+vartimes={'ssh':{'startdate':dt.datetime(year0,2,2,1,0),'enddate':dt.datetime(year1,3,1,1,0),'step[hours]':1},\
+'salt':{'startdate':dt.datetime(year0,2,1,12,0),'enddate':dt.datetime(year1,3,1,12,0),'step[hours]':24},\
+'temp':{'startdate':dt.datetime(year0,2,1,12,0),'enddate':dt.datetime(year1,3,1,12,0),'step[hours]':24},\
 } # limit later by s0.dates
 
 
@@ -90,10 +96,16 @@ vartimes={'ssh':{'startdate':dt.datetime(year0,11,2,1,0),'enddate':dt.datetime(y
 # limx=((27.3,31.8))	#((-1.14,9.84))
 #limy=((41,47))	#((49.7,56.21))
 
+#ghana station
+#lat,lon = 5.4, 1
+#limx=((-0.1,1.75))	#((-1.14,9.84))
+#limy=((5.1,6.25))	#((49.7,56.21))
 
-lat,lon = 5.4, 1
-limx=((-0.1,1.75))	#((-1.14,9.84))
-limy=((5.1,6.25))	#((49.7,56.21))
+
+#OWF center
+lon,lat=7.7135470958629035, 54.36756716567857
+limx=((5.11,10.41))     #((-1.14,9.84))
+limy=((53.038,55.63))   #((49.7,56.21))
 
 
 
@@ -255,8 +267,8 @@ def get_slab(self, time, varname, layer=-1):
 # schism setups
 schism_setups=[]
 for i_setup,diri in enumerate(setupdir):
-	os.chdir(diri)
-	exec("s{:d}=schism_setup(vgrid_file='vgrid.in.old')".format(i_setup)) #due to format change necessary for new i/o can only load the old vgrid.in
+	os.chdir(diri) #.old
+	exec("s{:d}=schism_setup(vgrid_file='vgrid.in')".format(i_setup)) #due to format change necessary for new i/o can only load the old vgrid.in
 	exec('x=np.asarray(s{:d}.lon)'.format(i_setup))
 	exec('y=np.asarray(s{:d}.lat)'.format(i_setup))
 
@@ -309,7 +321,7 @@ for i_setup,diri in enumerate(setupdir):
 #amm15=cmems(SSHfile=file)
 #date=dt.datetime(2012,6,1,0,0,0)
 date=s0.dates[0]	
-if 0:
+if addAMM:
 	Tfile,Sfile,SSHfile=[oceandir + namei for namei in Amm15.gnameExtern(date)]
 	moc=Amm15(Tfile,Sfile,SSHfile)
 	moc.gname(date)		
@@ -341,7 +353,7 @@ elif 1:
 	#ocdates=netCDF4.num2date(nc['time'][0],nc['time'].units)+dt.timedelta(hours=24)*np.arange(len(ocfiles))
 	#nc.close()
 
-if 0: #gcoast
+if addAMM: #gcoast
 	############################################################
 
 	############# load data
@@ -355,9 +367,13 @@ if 0: #gcoast
 	moc.get_slab(date,level=0,varname='ssh')
 	#moc.plot_slab()
 
+if addAMM:
+	models=[moc]
+	struct=[1]
+else:	
+	models=[]
+	struct=[]
 
-models=[moc]
-struct=[1]
 for s in schism_setups:
 	s.vardict = sdictvnames
 	s.get_slab(s, date, s.vardict['temp'])

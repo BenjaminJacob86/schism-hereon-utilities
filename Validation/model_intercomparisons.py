@@ -42,35 +42,23 @@ plt.ion()
 ########## settings ##################################################
 # directories (have to end with '/')
 # SCHIMS grid files
-setupdir=['/work/gg0028/g260114/SETUPS/NWBS2b/']
+setupdir=['/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_NWF/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_EWF/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_FIT/']
+
+names=setup_names=['NWF','EWF','FIT']
+
 
 oceandir=['/work/gg0028/g260114/SETUPS/NWBS/setup/Forcing/data/nrt.cmems-du.eu/Core/BLKSEA_ANALYSISFORECAST_PHY_007_001/all/']
 
-ncdir=[setupdir[0]+'/outputs_all/']
+#ncdir=[setupdir[0]+'/outputs_all/']
+ncdir=[setupdir[i] + 'outputs_all/' for i in range(len(setup_names))]  
 
 
-#ncdir=[setupdir[0]+'outputs/'] # where the outputs are.
-#ncdir+=[setupdir[1]+'outputs/'] # where the outputs are.
-#ncdir+=[setupdir[2]+'outputs/'] # where the outputs are.
-##ncdir=[setupdir[0]+'outputs_hotstart_not_freshened/']
-#ncdir+=[setupdir[2]+'outputs_all/'] # where the outputs are.
-#
-#
-#
-## directories (have to end with '/')
-#oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'   # 
-#setupdir=['/gpfs/work/jacobb/data/SETUPS/NorthSea/NorthSea200mHelgoland/RERUN/']
-#ncdir=[setupdir[0]+'combined/'] #'combined_stRart_wrongly_1.1/'		  #
-#setupdir+=['/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/']
-#ncdir+=[setupdir[1]+'combined/']
-
-#outdir='/gpfs/work/jacobb/data/SETUPS/NorthSea/NorthSea200mHelgoland/RERUN/Amm15vsSNShelgo_vs_GB3/'
-outdir=setupdir[0]+'comps/'
+outdir='/work/gg0028/g260114/PROJECTS/OLAMUR/comps/' #setupdir[0]+'comps/'
 if not os.path.exists(outdir): os.mkdir(outdir) 
 #plt.ion()
-names=['CMEMS','NWBS']
+#names=['CMEMS','NWBS']
 
-varnames=['temp','ssh','salt']						#varnames=['ssh','salt','temp'] ['ssh',] if only one has to have ,
+#varnames=['temp','ssh','salt']						#varnames=['ssh','salt','temp'] ['ssh',] if only one has to have ,
 varnames=['ssh',]
 #varnames=['temp','salt']
 min_max={'ssh':(-1.5,1.5),'salt':(0,35),'temp':(2,24)}	# axis range for variables
@@ -79,16 +67,16 @@ dthours={'ssh':3,'salt':12,'temp':12}				# make plot each dthours hour
 ndays_ts={'ssh':2,'salt':30,'temp':30}             # nr of days depicted in time series subplot
 
 # considrede time periods and steps for vriables
-vartimes={
-'ssh':{'startdate':dt.datetime(2018,1,1,1,0),'enddate':dt.datetime(2018,3,1,1,0),'step[hours]':1},
-'salt':{'startdate':dt.datetime(2018,1,1,12,0),'enddate':dt.datetime(2018,12,31,12,0),'step[hours]':24},
-'temp':{'startdate':dt.datetime(2018,1,1,12,0),'enddate':dt.datetime(2018,12,31,12,0),'step[hours]':24},
-}
+#vartimes={
+#'ssh':{'startdate':dt.datetime(2020,1,1,1,0),'enddate':dt.datetime(2020,3,1,1,0),'step[hours]':1},
+#'salt':{'startdate':dt.datetime(2020,1,1,12,0),'enddate':dt.datetime(2020,12,31,12,0),'step[hours]':24},
+#'temp':{'startdate':dt.datetime(2020,1,1,12,0),'enddate':dt.datetime(2020,12,31,12,0),'step[hours]':24},
+#}
 
 vartimes={
-'ssh':{'startdate':dt.datetime(2018,1,1,1,0),'enddate':dt.datetime(2018,3,1,1,0),'step[hours]':1},
-'salt':{'startdate':dt.datetime(2018,1,1,12,0),'enddate':dt.datetime(2018,11,21,12,0),'step[hours]':24*3},
-'temp':{'startdate':dt.datetime(2018,1,1,12,0),'enddate':dt.datetime(2018,11,21,12,0),'step[hours]':24*3},
+'ssh':{'startdate':dt.datetime(2020,2,1,1,0),'enddate':dt.datetime(2020,3,1,1,0),'step[hours]':1},
+'salt':{'startdate':dt.datetime(2020,2,1,12,0),'enddate':dt.datetime(2020,3,21,12,0),'step[hours]':24*3},
+'temp':{'startdate':dt.datetime(2020,2,1,12,0),'enddate':dt.datetime(2020,3,21,12,0),'step[hours]':24*3},
 }
 
 
@@ -97,9 +85,17 @@ vartimes={
 #lon=7.6548217184545075
 #lat=53.75554953775793
 # helgoland
-lat,lon = 54.181453837423874, 7.8974252215073095
+#lat,lon = 54.181453837423874, 7.8974252215073095
 limx=((5.11,10.41))	#((-1.14,9.84))
 limy=((53.038,55.63))	#((49.7,56.21))
+
+
+#lat,lon = 54.181453837423874, 7.8974252215073095
+#OWF center
+lonmlat=7.7135470958629035, 54.36756716567857
+limx=((5.11,10.41))	#((-1.14,9.84))
+limy=((53.038,55.63))	#((49.7,56.21))
+
 
 dthour=1
 ndays=365 # Run durations
@@ -339,7 +335,7 @@ def get_slab(self,time,varname,layer=-1):
 		
 #
 #def get_slab(self,date,varname,layer=-1):
-#		#np.datetime64(time)  Out[811]: numpy.datetime64('2018-01-02T00:00:00.000000')
+#		#np.datetime64(time)  Out[811]: numpy.datetime64('2020-01-02T00:00:00.000000')
 #		#model.nc['time'][23]
 #		self.slab=self.nc[varname].interp(time=np.datetime64(date))[:,layer].values
 #		self.wetdry=np.round(self.nc['wetdry_elem'].interp(time=np.datetime64(date)).values)

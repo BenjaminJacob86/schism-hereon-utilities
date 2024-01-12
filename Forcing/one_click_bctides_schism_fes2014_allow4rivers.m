@@ -53,14 +53,14 @@ fes_current_dir='/gpfs/work/jacobb/data/DATA/Tides/fes2014a_currents/';
 
 %% 0 c)  where resides the hgrid.gr3 and hgird.ll files ?
 %rundir='/gpfs/work/jacobb/data/RUNS/Europe/';
-rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/';%
+rundir='/gpfs/work/jacobb/data/SETUPS/Ghana/V3' %'/gpfs/work/jacobb/data/SETUPS/GB_template/';%
 bounodes=extract_open_nodes(strcat(rundir,'hgrid.ll'));  % need obundaries in hgrid.ll
 %% 1- where to save bctides.in?
 %savedirs='/gpfs/work/jacobb/data/RUNS/Europe/tides/';
 savedirs='/gpfs/work/jacobb/data/SETUPS/GB_template/';
 %% 2- Specify time to run model
-t_s='01-Jan-2023 01:00:00'; % Start
-t_e='01-Feb-2023 00:00:00'; % Finish
+t_s='02-Jan-2022 01:00:00'; % Start
+t_e='01-Feb-2022 00:00:00'; % Finish
 %% 3- Specify how many tidal constituents you expect to run?
  incnstit = {'M2','S2','N2','K2','K1','O1','Q1','P1'};
  
@@ -688,6 +688,9 @@ for i=1:length(const)
     lat2=pts_data(j,2);
     
     I=find(lon>=lon2,1); %find 1st entry
+	if isempty(I) % meridian
+		[I,~]=max(lon2)
+	end
     J=find(lat>=lat2,1);
     if(I<=1 || J<=1) 
 	%if(I<=1 | J<=1) 

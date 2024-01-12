@@ -37,7 +37,7 @@ import sys
 import csv
 import matplotlib
 from matplotlib import pyplot as plt
-background=True
+background=False
 if background:
 	matplotlib.use('Agg') # backend
 else:
@@ -91,21 +91,17 @@ elif cluster=='strand':
 oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/' #amm15 directory
 
 # schism setup(s) for cross validation TG stations are selected based on coverage of first setup
-#setupdir: schism run directory, containts hgrid.* etc.
-
-setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_REF/']
-#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_REF/',
-#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',
-#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_max/',
-#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_HE/',
-#'/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_LE/'][:3]
-
-setup_names=['REF']
 
 
-ncdir=[setupdir[i] + 'outputs_all/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
+setupdir=['/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_NWF_ModifiedSflux/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_EWF_ModifiedSflux/','/work/gg0877/g260200/GB_sth_HydroSed_Feb2020_FIT_ModifiedSflux/','/work/bg1186/g260094/Deutsche_Bucht/GB_Seyed_OWF/']
+ncdir=[setupdir[i] + 'outputs_all/' for i in range(len(setup_names))]      
+ncdir[-1]=setupdir[-1] + 'outputs/'
+setup_names=['NWF','EWF','FIT','DWD']
 
-max_stack=303 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
+
+
+
+max_stack=14 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
 
 
 # True: use station output False: extract from netcdf (slow)
@@ -115,16 +111,16 @@ use_station_in=[False]*len(setup_names)
  
 
 outdir=setupdir[0]+'TGvalid/' 	    # output directory where images will be stored
-year=2017							# year to be analyesed if year=None use first year of model run 	 
+year=2020							# year to be analyesed if year=None use first year of model run 	 
 dtol=0.4    #0.05 					# distance tolerance in degree lon/lat towards tg stations 
 
 
-t00=np.datetime64('2017-10-25')#('2013-10-27') #=False		  # only use time period after t00 if t00=False use all avaialbale overlapping data	
-#t11=np.datetime64('2013-11-04') #=False					  # only use time period until t00 if t11=False use all not in place yet
+t00=np.datetime64('2020-02-07')#('2013-10-27') #=False		  # only use time period after t00 if t00=False use all avaialbale overlapping data	
+t11=np.datetime64('2020-02-11') #=False					  # only use time period until t00 if t11=False use all not in place yet
 
 remove_mean=True  					  # remove temporal mean from Data and Model to compare 2
 use_amm=False						  # compare against amm15
-shift_dt=np.timedelta64(1,'h')		  # timestep correction if necessary
+shift_dt=np.timedelta64(0,'h')		  # timestep correction if necessary
 
 
 #--- what to plot True/False:			
@@ -601,6 +597,8 @@ for i,name in enumerate(names):
 	# test
 	if t00!=False:
 		Todates2=Todates2[Todates2>=t00]
+	if t11!=False:
+		Todates2=Todates2[Todates2<=t11]
 	
 	stations['TG']['interp'][name]['time']=Todates2
 	a,ainb,bina=np.intersect1d(Todates, Todates2, assume_unique=False, return_indices=True)
@@ -743,7 +741,8 @@ if satistic_maps:
 		fig=plt.gcf()
 		fig.set_size_inches(11,8,forward=True)
 		for nr,model in enumerate(sources[1:]):
-			phs[nr]=plt.scatter(x[ivalids[nr]],y[ivalids[nr]],s=Rcircles[nr],c=data[nr][ivalids[nr]]+nr,vmin=vmin,vmax=vmax)			
+			phs[nr]=plt.scatter(x[ivalids[nr]],y[ivalids[nr]],s=Rcircles[nr],c=data[nr][ivalids[nr]],vmin=vmin,vmax=vmax)		
+			phs[0].set_clim(vmin=vmin,vmax=vmax)			
 		ph=plt.colorbar()
 		ph.set_label(labels[key])
 		plt.legend(phs.values(),sources[1:],loc='upper center',ncol=2,frameon=False)
@@ -801,6 +800,9 @@ if first_two_Weeks:
 		if t00!=False:
 			tmin=np.maximum(tmin,t00)
 		tmax=tmin+np.timedelta64(14,'D')
+		if t11!=False:
+			tmiax=np.minimum(tmax,t11)
+		
 		#inds=stations[setup_names[0]]['time']<tmax
 		inds=[]
 		for key in sources[1:]:
@@ -936,6 +938,7 @@ if monthly_subplots:
 		figures.append(fname)
 		captions.append(caption)	
 
+		
 if taylor_diag:
 	
 	key=sources[1]
@@ -943,36 +946,29 @@ if taylor_diag:
 	for key in sources[2:]:
 		samples.append([ [stations[key]['stats']['std_rel'][name],stations[key]['stats']['cor'][name],name[:3]] for name in names ])
 
-	plt.clf()
-	dia=plotTaylor(samples[0],stdref=1,extend=True) #negative
-	for nr,key in enumerate(sources[2:]):
-		#Add models to Taylor diagram
-		for i,(stddev, corrcoef, name) in enumerate(samples[nr]):
-			i,stddev, corrcoef, name
-			dia.add_sample(stddev, corrcoef,marker='$%d$' % (i+1), ms=10, ls='',mfc=colors[nr,:], mec=colors[nr,:],label=name)
+	for fname, extend in zip(['5_taylorA.eps','5_taylorB.eps'],[True,False]):
+		plt.clf()
+		dia=plotTaylor(samples[0],stdref=1,extend=extend) #negative
+		for point in dia.samplePoints:
+			#point.set_color(colors[0])
+			point.set_markeredgecolor(colors[0])
+			point.set_markersize(13)
 
-	fname='5_taylorA.eps'	
-	figures.append(fname)
-	caption='Taylor diagram of full signals interpolated to Tide Gauge Timesteps. Black: Schism, Red Amm15.'
-	captions.append(caption)
-	plt.savefig(outdir+fname,dpi=dpivalue)
-	plt.close()
-	
-	plt.clf()
-	dia=plotTaylor(samples[0],stdref=1,extend=False) #negative
-	for nr,key in enumerate(sources[2:3]):
-		#Add models to Taylor diagram
-		for i,(stddev, corrcoef, name) in enumerate(samples[nr]):
-			i,stddev, corrcoef, name
-			dia.add_sample(stddev, corrcoef,marker='$%d$' % (i+1), ms=10, ls='',mfc=colors[nr,:], mec=colors[nr,:],label=name)
-	fname='5_taylorB.eps'	
-	figures.append(fname)
-	caption='Taylor diagram of full signals interpolated to Tide Gauge Timesteps. Black: Schism, Red Amm15.'
-	captions.append(caption)
-	plt.savefig(outdir+fname,dpi=dpivalue)
-	plt.close()
+		for nr,key in enumerate(sources[2:]):
+			#Add models to Taylor diagram
+			for i,(stddev, corrcoef, name) in enumerate(samples[nr+1]):
+				i,stddev, corrcoef, name
+				dia.add_sample(stddev, corrcoef,marker='$%d$' % (i+1), ms=10, ls='',mfc=colors[nr+1,:], mec=colors[1+nr,:],label=name)
+		phis=[plt.plot(0,0,'.',markeredgecolor=colors[nr,:]) for nr in range(len(sources[2:])+1)]		
+				
+		plt.legend(sources[1:],loc='lower right')
+		#fname='5_taylorA.eps'	
+		figures.append(fname)
+		caption='Taylor diagram of full signals interpolated to Tide Gauge Timesteps. Black: Schism, Red Amm15.'
+		captions.append(caption)
+		plt.savefig(outdir+fname,dpi=dpivalue)
+		plt.close()
 
-	
 	ivlaid=~np.isnan(list(stations[sources[-1]]['stats']['bias'].values()))
 	bias=[]
 	rmse=[]
@@ -982,19 +978,67 @@ if taylor_diag:
 		bias.append(np.mean(np.abs(np.asarray(list(stations[stp]['stats']['bias'].values()))[ivlaid])))
 		rmse.append(np.mean((np.asarray(list(stations[stp]['stats']['rmse'].values()))[ivlaid])))
 		cor.append(np.mean((np.asarray(list(stations[stp]['stats']['cor'].values()))[ivlaid])))
-	#k=0
-	#plt.clf()
-	#xpos=np.arange(3)
-	#for k,stp in enumerate(sources[1:]):
-	#	plt.bar(xpos+k/n,[bias[k],rmse[k],cor[k]],1/n,align='edge',label=stp)
-	#plt.xticks(xpos+2/n,('bias','mae','cor'))	
-	#fname='5.2_sation_average.eps'	
-	#plt.ylabel('station averaged values')
-	#figures.append(fname)
-	#caption='Statiscal properties averaged over commonly covered stations'
-	#captions.append(caption)
-	#plt.savefig(outdir+fname,dpi=dpivalue)
-	#plt.close()
+
+		
+#if taylor_diag:
+#	
+#	key=sources[1]
+#	samples=[[ [stations[key]['stats']['std_rel'][name],stations[key]['stats']['cor'][name],name[:3]] for name in names ]]
+#	for key in sources[2:]:
+#		samples.append([ [stations[key]['stats']['std_rel'][name],stations[key]['stats']['cor'][name],name[:3]] for name in names ])
+#
+#	plt.clf()
+#	dia=plotTaylor(samples[0],stdref=1,extend=True) #negative
+#	for nr,key in enumerate(sources[2:]):
+#		#Add models to Taylor diagram
+#		for i,(stddev, corrcoef, name) in enumerate(samples[nr]):
+#			i,stddev, corrcoef, name
+#			dia.add_sample(stddev, corrcoef,marker='$%d$' % (i+1), ms=10, ls='',mfc=colors[nr,:], mec=colors[nr,:],label=name)
+#
+#	fname='5_taylorA.eps'	
+#	figures.append(fname)
+#	caption='Taylor diagram of full signals interpolated to Tide Gauge Timesteps. Black: Schism, Red Amm15.'
+#	captions.append(caption)
+#	plt.savefig(outdir+fname,dpi=dpivalue)
+#	plt.close()
+#	
+#	plt.clf()
+#	dia=plotTaylor(samples[0],stdref=1,extend=False) #negative
+#	for nr,key in enumerate(sources[2:3]):
+#		#Add models to Taylor diagram
+#		for i,(stddev, corrcoef, name) in enumerate(samples[nr]):
+#			i,stddev, corrcoef, name
+#			dia.add_sample(stddev, corrcoef,marker='$%d$' % (i+1), ms=10, ls='',mfc=colors[nr,:], mec=colors[nr,:],label=name)
+#	fname='5_taylorB.eps'	
+#	figures.append(fname)
+#	caption='Taylor diagram of full signals interpolated to Tide Gauge Timesteps. Black: Schism, Red Amm15.'
+#	captions.append(caption)
+#	plt.savefig(outdir+fname,dpi=dpivalue)
+#	plt.close()
+#
+#	
+#	ivlaid=~np.isnan(list(stations[sources[-1]]['stats']['bias'].values()))
+#	bias=[]
+#	rmse=[]
+#	cor=[]
+#	
+#	for stp in sources[1:]:
+#		bias.append(np.mean(np.abs(np.asarray(list(stations[stp]['stats']['bias'].values()))[ivlaid])))
+#		rmse.append(np.mean((np.asarray(list(stations[stp]['stats']['rmse'].values()))[ivlaid])))
+#		cor.append(np.mean((np.asarray(list(stations[stp]['stats']['cor'].values()))[ivlaid])))
+#	#k=0
+#	#plt.clf()
+#	#xpos=np.arange(3)
+#	#for k,stp in enumerate(sources[1:]):
+#	#	plt.bar(xpos+k/n,[bias[k],rmse[k],cor[k]],1/n,align='edge',label=stp)
+#	#plt.xticks(xpos+2/n,('bias','mae','cor'))	
+#	#fname='5.2_sation_average.eps'	
+#	#plt.ylabel('station averaged values')
+#	#figures.append(fname)
+#	#caption='Statiscal properties averaged over commonly covered stations'
+#	#captions.append(caption)
+#	#plt.savefig(outdir+fname,dpi=dpivalue)
+#	#plt.close()
 
 
 	

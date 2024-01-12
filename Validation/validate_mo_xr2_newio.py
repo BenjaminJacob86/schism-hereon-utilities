@@ -27,6 +27,7 @@ import datetime as dt
 from netCDF4 import Dataset,MFDataset
 from matplotlib import gridspec  # unequal subplots
 from scipy.interpolate import interp1d
+import pandas as pd	
 sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/')
 sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/Lib/')
 sys.path.insert(0,'/gpfs/work/jacobb/data/shared/schism-hzg-utilities/')
@@ -68,18 +69,21 @@ dtol=0.05           # distance tolerance in degree lon/lat for station selection
 
 ncdir=[setupdir[0] + 'outputs_all/'] 		  #   directory of schism nc output or 
 ncdir+=[setupdir[1] + 'outputs_all/']
+setup_names=['Veg_CNTRL','Veg_CNTRL_Heatcheck'] # labels for plots
 
-setup_names=['Veg_CNTRL','Veg_CNTRL_Heatcheck'] #,'GNU','ParamReset']
 
-
+# compare with amm 15
+add_amm15=False  											#
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
+
+# output direcotry
 outdir=setupdir[0]+'mo_valid4/'	   # output directory where images will be stored
-if not os.path.exists(outdir): os.mkdir(outdir) 
+
 
 Tmax=45
 Smax=49
-add_amm15=False  											# add plot comparing with Amm15 | Amm15 profiles 
+ add plot comparing with Amm15 | Amm15 profiles 
 use_station_in=[False,False]					  # True: use station output False: extract from netcdf (slow)
 put_pics_to_texdoc=True    										# images will be put in tex document
 latexname='HRBallje.tex' #'GB1_5Ems_marnet.tex'										# in alphanumerical order 
@@ -104,11 +108,17 @@ def set_fontsize(fac=1):
 	plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure
 
 ######### load SCHISM setup   ##################################
+
+# create output directory
+if not os.path.exists(outdir): os.mkdir(outdir) 
+
 cwd=os.getcwd()
 setups={}
 output={}
 access={}
 
+
+# load setup access
 setups=[]
 newio=[]
 for i,folder in enumerate(setupdir):
@@ -116,7 +126,6 @@ for i,folder in enumerate(setupdir):
 	#s=schism_setup()
 	setups.append(schism_setup())
 	setups[i].nntree = cKDTree(list(zip(setups[i].lon,setups[i].lat))) 
-
 	#lon,lat,D=np.asarray(s.lon),np.asarray(s.lat),np.asarray(s.depths)
 	#lon[D>dmin]=9999
 	#s.nntree = cKDTree(list(zip(lon,lat))) 
@@ -151,6 +160,7 @@ for i,folder in enumerate(setupdir):
 # pattern to check in amm15 files 		
 # access[0].ds[access[0].vardict['temperature']]
 
+## Load time vector
 if use_station_in[0]:
 	T=staout.time
 	T=np.asarray([np.datetime64(ti) for ti in T])
@@ -169,7 +179,6 @@ else:
 
 
 ######### initialize marnet Data located in SCHISM Domain #######
-
 if len(glob.glob((mardir+'20??*'))) > 0: #ear folders
 	foldertype='time'
 	folders=np.sort(glob.glob(mardir+'{:d}*'.format(year)))
@@ -418,6 +427,7 @@ for coord,name in zip(stations['coord'],stations['names']):
 plt.title('Marnet Stations')
 s.plot_domain_boundaries(append=True,latlon=True)
 plt.savefig(outdir+'0_MarnetStations.png',dpi=300)
+
 
 
 #ncks -v salt,temp,zcor schout_1.nc out.nc
@@ -687,13 +697,11 @@ if add_amm15:
 	
 # temp
 plt.figure()#(figsize=(25,33)) # full dina 4 widht in inch
-#compare={tag:{'temp':np.nan,'salt':np.nan} for tag in names}
 compare={setup_name: {tag:{'T':np.nan,'S':np.nan} for tag in names} for setup_name in setup_names}
 for setup_name in setup_names:
 	for key in compare[setup_name].keys():
 		for key2 in compare[setup_name][key].keys():
 			compare[setup_name][key][key2]={tag:np.nan for tag in  ['bias','rmse','cor','std1','std2']}
-			
 		
 	plt.clf()
 	for i,tag in enumerate(names):
@@ -711,7 +719,6 @@ for setup_name in setup_names:
 				continue
 			Tmod=stations[setup_name]['MO'][tag][var]
 			#Smod=stations[setup_name]['MO'][tag]['S']
-
 			#Tmod.shape == Tobs.shape
 			#zmat=np.tile(stations['MO'][tag]['D'],[len(obs_time),1]).T
 			
@@ -778,7 +785,6 @@ for setup_name in setup_names:
 				bias*=np.nan
 				rmse*=np.nan
 				R*=np.nan
-			
 		
 			ind=range(len(bias))
 			if (type(Tobs) == np.ma.masked_array): 
@@ -787,7 +793,6 @@ for setup_name in setup_names:
 			plt.bar(D[ind]-0.33,bias[ind],color='g', label='bias',width=0.33)
 			plt.bar(D[ind], rmse[ind],color='b', label='RMSE',width=0.33)
 			plt.bar(D[ind]+0.33, R[ind],color='k', label='COR',width=0.33)
-
 
 			#plt.title('total Bias/rmse {:.2f}/{:.2f}'.format((Tmod-Tobs).mean(),np.sqrt( ((T[tag]-T_schism[tag])**2).quantile95()))) 
 			
@@ -811,7 +816,6 @@ for setup_name in setup_names:
 			plt.savefig(outdir+setup_name+'3_'+tag+var+'_statistics.png',dpi=300)		
 
 
-import pandas as pd	
 def write_table(varname,stations,compare,names,setup_name):
 	d = {'station': names}	
 	f=open(setup_name+varname+'.txt','w')

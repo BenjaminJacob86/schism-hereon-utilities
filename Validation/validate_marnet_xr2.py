@@ -3,8 +3,7 @@ import os
 import netCDF4
 import sys
 import matplotlib
-#matplotlib.use('Agg') # backend
-background=False
+background=True
 if background:
 	matplotlib.use('Agg') # backend
 else:
@@ -44,19 +43,21 @@ from data_and_model_classes import cmems
 
 ########## settings #################################
 # directories
-mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/' 					  # myocean
+mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/' 					  # 
 mardir='/work/gg0028/g260099/MARNET/'
-#setupdir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GermanBight_HR_Ballje/'
-setupdir='/work/gg0028/g260126/SCHISM/schism_cfgs/SNS_GB_Control/'
-ncdir=setupdir+'/outputs/Combined/' #'combined_start_wrongly_1.1/'						  # schism run	
-year=2018		    # currently data between 2011 and 2018				
+mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/'
+
+setupdir='/gpfs/work/pein/data/SNS/SNSEWEmwind_01a_CMEMS_2012/'
+ncdir='/gpfs/work/jacobb/data/marnet_test/outputs/'#setupdir+'/outputs/Combined/' #'combined_start_wrongly_1.1/'						  # schism run	
+year=2012		    # currently data between 2011 and 2018				
 dtol=0.05           										   # distance tolerance in degree lon/lat 
 #/work/gg0028/g260099/CMEMS_INSITU/DWL_202006/Core/INSITU_NWS_NRT_OBSERVATIONS_013_036/nws_multiparameter_nrt/monthly/MO
 
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
-outdir=setupdir+'/GB_HR_Ballje_vs_marnet/'	   # output directory where images will be stored
-outdir='/mnt/lustre01/work/gg0028/g260114/test/'
+#outdir=setupdir+'/GB_HR_Ballje_vs_marnet/'	   # output directory where images will be stored
+setup_names=['CMEMS_2012']
+outdir='/gpfs/work/jacobb/data/marnet_test/outputs/'+'mo_valid4/'
 if not os.path.exists(outdir): os.mkdir(outdir) 
 
 Tmax=45
@@ -100,21 +101,21 @@ s.nntree = cKDTree(list(zip(s.lon,s.lat)))
 
 stations={'coord':[],'names':[],'TG':{}}
 sources=setup_names.copy()
-if use_amm:
+if add_amm:
 	sources.append('amm')
 for key in sources:	
 	stations[key]={'nc':[],'time':[],'nn':[],'coord':[],'zeta':[],'names':[]}
 	
-if len(glob.glob((mardir+'20??*'))) > 0: #ear folders
-	foldertype='time'
-	folders=np.sort(glob.glob(mardir+'{:d}*'.format(year)))
-	files=glob.glob(folders[0]+'/*.nc')
-	nfolders=1
-else:
-	foldertype='station'
-	folders=glob.glob(mardir+'/*/')
-	nfolders=len(folders)
-	files=glob.glob(folders[0]+'/*.nc')
+#if len(glob.glob((mardir+'20??*'))) > 0: #ear folders
+#	foldertype='time'
+#	folders=np.sort(glob.glob(mardir+'*{:d}*'.format(year)))
+#	files=glob.glob(folders[0]+'/*.nc')
+#	nfolders=1
+#else:
+#	foldertype='station'
+#	folders=glob.glob(mardir+'/*/')
+#	nfolders=len(folders)
+#	files=glob.glob(folders[0]+'/*.nc')
 
 
 

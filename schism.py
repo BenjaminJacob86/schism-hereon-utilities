@@ -1517,6 +1517,8 @@ class schism_outputs_by_variable():
                   min_stack=np.where([str(min_stack) in file for file in files[key]])[0][0]
               if (max_stack>-1):
                   max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
+              else:
+                  max_stack=len(files[key])+1			
          #if key==list(files.keys())[0] and (max_stack>-1):
          #     max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
          #self.ds[key]=xr.open_mfdataset(files[key][:max_stack])
