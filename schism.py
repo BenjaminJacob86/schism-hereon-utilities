@@ -363,8 +363,8 @@ class schism_setup(object):
   def get_bdy_latlon(self):
       bdnodes=[]
       for land,ocean in list(zip(self.land_segments,self.bdy_segments)):		
-        bdnode.append(ocean)
-        bdnode.append(land[1:])
+        bdnodes.append(ocean)
+        bdnodes.append(land[1:])
       bdnodes=np.hstack(bdnodes)		
       bdylon=np.asarray(self.lon)[bdnodes-1]
       bdylat=np.asarray(self.lat)[bdnodes-1]
@@ -875,7 +875,7 @@ class schism_setup(object):
 
 	  
   # plot functions - using basemap
-  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True):
+  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
       valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
@@ -898,8 +898,10 @@ class schism_setup(object):
       ## load higher resolutions coastline assets
       else:
           proj=ccrs.PlateCarree()  # define Prijection
-		  
-      land_10m = cfeature.NaturalEarthFeature('physical', 'land', '10m',edgecolor='face',                                        facecolor=cfeature.COLORS['land'])
+
+
+      #landcolor='default'		  
+      land_10m = cfeature.NaturalEarthFeature('physical', 'land', '10m',edgecolor='face',facecolor=cfeature.COLORS['land'])
       ocean_10m = cfeature.NaturalEarthFeature('physical', 'ocean', '10m', edgecolor='face',facecolor=[0,0,1])
       #zoom_extend=(np.min(s.lon)-0.1, np.max(s.lon)+0.02, np.min(s.lat)-0.04, np.max(s.lat)+0.1)
 	  

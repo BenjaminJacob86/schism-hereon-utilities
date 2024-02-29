@@ -1,0 +1,151 @@
+Meeting CMCC
+
+Here a possible agenda:
+- Brief introduction on CMCC/UNIBO and HEREON coastal modelling activities in EDITO.
+- Containerization - Docker vs Singularity/Apptainer vs more..
+- Standardization of output format: u-grid
+- Nature-based solution modelling and connection with D-Eco-Impact
+- …
+
+
+
+
+http://opencoasts.lnec.pt/index_en.php
+
+
+
+
+Relocatability 5.3
+
+
+
+
+
+SURF:
+
+Relocateble prediction
+
+Virtual machine/container
+
+
+
+Configurationfile (json)
+two user types:
+
+
+
+child mesh - generation
+barycentric,
+
+
+software: gmesh
+distance of coast
+transition from higher res to ocean
+
+
+
+config file fore sims in json
+
+? gridding shyfm?
+
+
+
+
+Visualization of: HoloViz
+
+
+
+
+
+#######################################################################################
+Containerization:
+
+Docker
+
+apptainer/Singularity -> HPC
+
+splitted:
+
+
+aptainer:
+singularity
+
+Felix used apptainer:
+
+
+Converter Docker to singularity:
+
+
+
+
+
+
+#apptainer
+Docker image -> definiatnin -> singularity
+
+singularity -> conversion from Docker
+
+Udocker?
+
+Consistent chocie.
+
+
+###
+started singularity!
+
+
+then realized, singularity not on mac needs linux!
+
+Docker for pre-  post.
+
+Surf on cloude. 
+Download.
+
+
+
+singularity <-> apptainer,  Barca computing center.
+
+Todo:
+
+take in call for HPC in Barca
+
+Every partner in line
+
+# Docker
+# not yet, contianerize
+
+
+
+########  
+uptake,
+Miguel, Barca center 
+
+conver to ugrid standard
+
+partial
+ugrid
+
+#######################################################################################
+
+
+meshing tool, jigsaw
+
+
+
+
+
+key metrics for NBS
+
+orbital currents
+
+also as us.
+
+
+
+submergent, 
+
+
+
+###############
+Shared tool for visualisation
+deadline prototype middle of this year, june

@@ -7,6 +7,8 @@ import sys
 #sys.path.insert(0,'/home/g/g260114/schism-hzg-utilities/')
 sys.path.insert(0,'/work/gg0028/SCHISM/schism-hzg-utilities/')
 import cartopy.crs as ccrs
+import matplotlib
+matplotlib.use('qtagg')
 from matplotlib import pyplot as plt
 from schism import* # import schism class to read grid structure
 
@@ -31,45 +33,53 @@ dask.__version__, distributed.__version__
 file='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jul/Veg_REF/mon_Ana_mveg_jan_2017_07.nc' #stats file
 rundir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jul/Veg_REF/'  # schism dircetory with grid
 
-file='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jan/Veg_REF/mon_Ana_mveg_jan_2017_01.nc'
-expnames=['Ref','Blank','Veg$_{max}$','Veg$_{HE}$','Veg$_{LE}$']  # experiment names within file
+file1='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jul/Veg_REF/mon_Ana_mveg_jan_2017_07.nc'
+file2='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jan/Veg_REF/mon_Ana_mveg_jan_2017_01.nc'
 
-# colorbars
-cmap=plt.cm.turbo
-cmap0=plt.cm.viridis        # For ref plot 
-cmap=cmocean.cm.balance     # For diffrence maps
+cwd=os.getcwd()
 
 
 
-mon=7 # month of analyiss
+mon=1 # month of analyiss
 # is store it in the fike abmes
 
 
 #surface bottom
-image_outdir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jul/period_stats2/' # where to store images
+image_outdir='./mon_comp_period_stats/'
+image_outdir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jul/period_stats/'
 if not os.path.exists(image_outdir):
 	os.mkdir(image_outdir)
 
 prefix='2017_07-_2017-08' # for output nc file
 prefix='2017_01-_2017-02' # for output nc file
 
+prefix='2017_Jan_vs_Jul'
+
 ## selected varnames
 varnames=['elevation','sigWaveHeight','depthAverageVel','totalSuspendedLoad_bottom']
+
 units={'elevation':'m','sigWaveHeight':'m','depthAverageVel':'m/s','totalSuspendedLoad_bottom':'g/L'}
-symbols={'elevation':'$\zeta$','sigWaveHeight':'HS','depthAverageVel':'$u_{<z>}$','totalSuspendedLoad_bottom':'C$_{bottom}$'}
+symbols={'elevation':'$\zeta$','sigWaveHeight':'HS','depthAverageVel':'$u_{<z>}$','totalSuspendedLoad_bottom':'spm'}
 
 
-# Define plot regions for zoomed plots --
+# define plot regions --
+#domain_tag=['total','efws','nfws']
+#efws=(6.7722882425499, 8.341052998071572, 53.51960339871429, 53.83566262094643)
+#nfws=(8.03, 9.01, 54.32902335808929, 55.55471643942857)
+#efws=(6.55, 8.45, 53.2, 53.83566262094643)
+
+
 # plot layout for sublot comparison of scnearios:
 regions={
 	'Domian':
 		{'figsize':(8,6),
 		'axis_limit':None,
-		'nrows':2,                          # rows in subplot
-		'ncols':3,                          # columns in subplot
-		'cb_orientation':'horizontal',      # orientation of colorbar
+		'nrows':2,
+		'ncols':3,
+		'cb_orientation':'horizontal',
 		'cbarpos':(0.675,0.325,0.3,0.02), # set cbar position in subplot (try and error)
 		'h_t_spacing':(None,None)        # hspace top space adjust # for subplotspacing ( hspace=-0.25,top=0.99)
+
 		},
 		
 	'EFWS':
@@ -91,20 +101,19 @@ regions={
 		'cbarpos':(0.3,0.125,0.6,0.02), # set cbar position in subplot (try and error)
 		'h_t_spacing':(-0.25,1.00)  
 		}		
+		
 }
 
-# limit  to do plots only for this defined region
-keep=['EFWS']
-keys=list(regions.keys())
-for key in keys:
-    if key not in keep:
-        regions.pop(key)
+
+
+cmap=plt.cm.turbo
+cmap0=plt.cm.viridis
+cmap=cmocean.cm.balance
 
 
 
-############### Programm startt ########################
 
-cwd=os.getcwd()
+
 if not os.path.isdir(image_outdir):
 	os.mkdir(image_outdir)
 quantaties=['mean','quantile95','max']	
@@ -306,11 +315,14 @@ s=schism_setup()
 s.init_node_tree(latlon=True)		
 		
 nametag='{:02d}'.format(mon)
-ds=xr.open_dataset(file)
 
-expkeys=[key for key in list(ds.keys()) if  'dryFlagNode_mean' in key  ]
+
+ds1=xr.open_dataset(file1)
+ds2=xr.open_dataset(file2)
+
+expkeys=[key for key in list(ds1.keys()) if  'dryFlagNode_mean' in key  ]
 experiments=[key.split('_dryFlagNode_mean')[0] for key in expkeys]
-
+expnames=['Ref','Blank','Veg$_{max}$','Veg$_{HE}$','Veg$_{LE}$']
 
 
 for i in range(len(varnames)):
@@ -320,11 +332,6 @@ for i in range(len(varnames)):
 	print(vari)
 	unit=units[vari]
 	
-    #debug
-	#if 'totalSuspendedLoad_bottom' in vari:
-	#	print(vari)    
-	#	break
-    
 	for j,quanti in enumerate(quantaties):
 		print(quanti)
 
@@ -335,24 +342,25 @@ for i in range(len(varnames)):
 			symbol=symbol.join((quanti.replace('quantile','prc')+'(',')'))
 		label0='{:s} [{:s}]'.format(symbol,unit)
 		try: #eventually variable not saved
-			data=[ds[expi+'_'+vari+'_'+quanti].values for expi in experiments]
+			data1=[ds1[expi+'_'+vari+'_'+quanti].values for expi in experiments]
+			data2 = [ds2[expi + '_' + vari + '_' + quanti].values for expi in experiments]
 		except:
 			try: #eventually variable not saved
-				data=[ds[quanti+'_'+expi+'_'+vari].values for expi in experiments]
+				data1=[ds1[quanti+'_'+expi+'_'+vari].values for expi in experiments]
+				data2=[ds2[quanti+'_'+expi+'_'+vari].values for expi in experiments]
+
 			except:
 				try: #eventually variable not saved
 					vari1,vari2=vari.split('_')
-					data=[ds[expi+'_'+vari1+'_'+quanti+'_'+vari2].values for expi in experiments]
+					data1=[ds1[expi+'_'+vari1+'_'+quanti+'_'+vari2].values for expi in experiments]
+					data2=[ds2[expi+'_'+vari1+'_'+quanti+'_'+vari2].values for expi in experiments]
 				except:
 					continue
-                    
-		print('make plots for variables qunataties '+label0)            
-	
+
 		#data=[results[expi][vari][quanti] for expi in experiments]
 		
 		for reg in regions:
-        
-			print('make plots for Region: '+reg)    
+
 			# set plot properties
 			figsize=regions[reg]['figsize']
 			axis_limit=regions[reg]['axis_limit']
@@ -371,9 +379,8 @@ for i in range(len(varnames)):
 				else:
 					label=label0
 					clim='auto'
-					addtxt=''		
-                    
-				if len(data[0].shape)==2: # surface and bottom  -Y need to change variable format
+					addtxt=''						
+				if len(data[0].shape)==2: # surface and bottom
 					for ilevel in [0,-1]:
 						level_data=[datai[:,ilevel] for datai in data]
 						fig,axs,cbar_ax,phs,qhs=compare_slabs_diff2(s,level_data,names=expnames,cmap=cmap,nrows=nrows,ncols=ncols,cblabel='$\Delta$'+label,axis_limit=axis_limit,clim=clim,figsize=figsize,cb_orientation=cb_orientation,relative=relative)#clim=(-0.01,0.01))

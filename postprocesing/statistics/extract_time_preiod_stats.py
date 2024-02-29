@@ -30,53 +30,42 @@ dask.__version__, distributed.__version__
 
 
 # take statistics over period:
-date0='20171027'
-date1='20171030'
+date0='20170701'
+date1='20170801'
 
 # Folders of involded scenarios
-#basedir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg_jan/'  # main directory, experiments are in subfolders
 basedir='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/'#
 
 # subfolder names
 
 # labels for the experiments in the netcdf output
-ref='Veg_REF'
-control='Veg_CNTRL'
-experiment='Veg_max'
-experiments=[ref,control,'Veg_max','Veg_HE','Veg_LE'] #,experiment]
+experiments=['Veg_REF','Veg_CNTRL','Veg_max','Veg_HE','Veg_LE']
 
 ## construct folders
 dirs=['Veg_REF','Veg_CNTRL','Veg_max','Veg_HE','Veg_LE']
+
 setupdir=[basedir+dir+'/' for dir in dirs]
 setupdir[1]='/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/'
-#ncdirs=[setupdiri+'outputs_all2/' for setupdiri in setupdir]#'outputs/'] # where the outputs are.
 ncdirs=[setupdiri+'outputs_all/' for setupdiri in setupdir]#'outputs/'] # where the outputs are.
 basedir=setupdir[0]
 
-quantaties=['mean','min','max','std','quantile95'] # potential quantaties (percentiles, eg.   'quantile95','quantile5', ...
+quantaties=['mean','min','max','std','quantile95'] # ['mean','min','max','std','quantile95'] potential quantaties (percentiles, eg.   'quantile95','quantile5', ...
 ###############################################
-
-
-# variables ---------------	
 
 #varnames=['dryFlagNode','sigWaveHeight','dominantDirection','meanWavePeriod','zeroDowncrossPeriod','peakPeriod','frictionalVelocity','turbulentKineticEner','totalSuspendedLoad','meanDirSpreading','rmsOrbitalVelocity']
 varnames=['dryFlagNode','elevation','sigWaveHeight','totalSuspendedLoad']
 
 # reduce varlist selection to speed up loading
 varlist=['out2d','turbulentKineticEner','totalSuspendedLoad','horizontalVelX','horizontalVelY']
+vector_vars=['depthAverageVel','bottomStress'] # add variables with x and y component
 #----------------------------
 
 # time period - potenetial input argument
-
 if len(sys.argv)>2:
-	mon0=int(sys.argv[1])
-	mon1=int(sys.argv[2])
+	date0=int(sys.argv[1])
+	date1=int(sys.argv[2])
 	print(mon0)
 	print(mon1)
-else:
-	mon0=1
-	mon1=1	
-
 
 print('extracting month {:d} - {:d}'.format(mon0,mon1))
 print(varnames)
@@ -142,13 +131,7 @@ for variablefile in np.unique(list(access[0].vardict.values())):
 ############
 
 ###### Reults ##############################	
-
-#### Pre define #####
-#varnames+=list(np.asarray(vector_vars)[np.asarray([0,1,3,4],int)])
-#varnames+=list(np.asarray(vector_vars)[np.asarray([0,2,3],int)])
-varnames+=['depthAverageVel','bottomStress'] 
-#units+=['m/s','kg/m/s^2','m/s','g/l']
-#symbols+=['U','btress', 'Umean','WED']
+varnames+=vector_vars
 
 # x and y compneints of vectr vars
 for comp in ['X','Y']:
@@ -189,8 +172,6 @@ date0=dt.datetime(startdate)
 dates
 
 
-
-#index=months==mon
 
 index=(dates>= date0) & (dates <= date1)
 levels=[len(s.vgrid[1])-1,0]
