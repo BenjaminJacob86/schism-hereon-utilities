@@ -874,7 +874,7 @@ class schism_setup(object):
       return ph,ch
 
 	  
-  # plot functions - using basemap
+  # plot functions - using cartopy
   def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
@@ -985,6 +985,130 @@ class schism_setup(object):
       ch=plt.colorbar(ph,cax=cax,extend=extend)
       
       return ph,ch,ax
+      
+      
+      
+  # plot functions - using cartopy
+  def plotAtElemsGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
+      """	
+      visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
+      valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
+	  """  
+
+      cmap.set_bad(drycolor,1) # set dry area value
+	  
+      lon,lat = np.asarray(self.lon),np.asarray(self.lat)
+      from mpl_toolkits.axes_grid1 import make_axes_locatable # allow axis adjustment of colorbar	  
+      # cartopy
+      import cartopy.crs as ccrs
+      import cartopy.feature as cfeature
+      from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+
+
+      ### cartopy ########
+      if proj=='merc':
+          proj=ccrs.Mercator()  # define Prijection
+      ## load higher resolutions coastline assets
+      else:
+          proj=ccrs.PlateCarree()  # define Prijection
+
+
+      #landcolor='default'	
+      if landcolor=='default':
+        landcolor=cfeature.COLORS['land']
+      else:
+        landcolor=landcolor
+	  
+      #land_10m = cfeature.NaturalEarthFeature('physical', 'land', '10m',edgecolor='face',facecolor=cfeature.COLORS['land'])
+      land_10m = cfeature.NaturalEarthFeature('physical', 'land', '10m',edgecolor='face',facecolor=landcolor)      
+      ocean_10m = cfeature.NaturalEarthFeature('physical', 'ocean', '10m', edgecolor='face',facecolor=[0,0,1])
+      #zoom_extend=(np.min(s.lon)-0.1, np.max(s.lon)+0.02, np.min(s.lat)-0.04, np.max(s.lat)+0.1)
+	  
+      if region_limit==None:
+        zoom_extend=(np.min(self.lon)-offset,np.max(self.lon)+offset, np.min(self.lat)-offset, np.max(self.lat)+offset)
+      else:      
+        zoom_extend=region_limit
+      ### project coordinates of schism class used in internal plot functions to map projection
+      print(zoom_extend)
+      outproj=proj.transform_points(ccrs.Geodetic(),lon,lat)
+      self.projx,self.projy=outproj[:,0],outproj[:,1]
+      ####################
+
+      # cartopy projection and features
+      if ax == None: # else ax is given for eg sub axe üöots
+          ax = plt.axes(projection=proj)
+		
+		
+      ax.set_extent(zoom_extend)
+      ax.add_feature(land_10m,zorder=-2)
+
+      if add_boarders:	  
+          ax.add_feature(cfeature.BORDERS, linestyle=':')
+      if add_lakes:
+          ax.add_feature(cfeature.LAKES, alpha=0.5)
+      if add_rivers:		
+          ax.add_feature(cfeature.RIVERS)		  
+	  
+      if (proj!='merc') & stock_image:
+          ax.stock_img()
+		
+      if len(values)==self.nnodes:  	
+          ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values[self.nvplt[:,:3]].mean(axis=1),shading='flat',cmap=cmap)# shading needs gouraud to allow correct update
+      elif len(values)==len(self.nvplt):
+          ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values,shading='flat',mask=mask,cmap=cmap)# shading needs
+      ch=plt.colorbar(extend=extend)
+      plt.tight_layout()
+
+
+	  
+      # scale colorbar to 1 and 99% quantile
+      #from IPython import embed; embed()
+      inan=np.isnan(values)
+      if type(values)==np.ma.masked_array:
+          inan=inan | inan.mask			
+		  #vmin=np.round(np.nanquantile(values[],0.01),1)
+		  #vmax=np.round(np.nanquantile(values,0.99),1)
+	  #else:
+      vmin=np.round(np.nanquantile(values[~inan],0.01),1)
+      vmax=np.round(np.nanquantile(values[~inan],0.99),1)
+      ph.set_clim((vmin,vmax))
+      
+      # Set tick labels
+      #xticks=np.unique(np.round(np.linspace((lon.min()),(lon.max()),8),1))
+      #yticks=np.unique(np.round(np.linspace((lat.min()),(lat.max()),8),1))
+      ax.set_extent(zoom_extend)
+      longrange=np.max(self.lon)-np.min(self.lon)
+      latrange=np.max(self.lat)-np.min(self.lat)
+      ratio=latrange/longrange
+      if ratio > 1:
+        nxticks=int(np.floor(8/ratio))
+        nyticks=8
+      else:
+        nxticks=8
+        nyticks=int(np.floor(8*ratio))
+      
+      xticks=np.unique(np.round(np.linspace((lon.min()),(lon.max()),nxticks),1))
+      yticks=np.unique(np.round(np.linspace((lat.min()),(lat.max()),nyticks),1))
+
+
+      ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+      ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+      lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
+      lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
+      ax.xaxis.set_major_formatter(lon_formatter)
+      ax.yaxis.set_major_formatter(lat_formatter)
+      
+      # adjust height of colorbar to fit plot axes
+      divider = make_axes_locatable(ax)
+      cax = divider.append_axes("right", size="5%", pad=0.05, axes_class=plt.Axes)
+      ch=plt.colorbar(ph,cax=cax,extend=extend)
+      
+      return ph,ch,ax      
+      
+      
+      
+      
+      
 	  
   def find_parent_tri(self,xq,yq,dThresh=1000,latlon=False):
     """ parents,ndeweights=find_parent_tri(xq,yq,dThresh=1000)
