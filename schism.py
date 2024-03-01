@@ -1056,7 +1056,7 @@ class schism_setup(object):
           ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values[self.nvplt[:,:3]].mean(axis=1),shading='flat',cmap=cmap)# shading needs gouraud to allow correct update
       elif len(values)==len(self.nvplt):
           ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values,shading='flat',mask=mask,cmap=cmap)# shading needs
-      ch=plt.colorbar(extend=extend)
+      #ch=plt.colorbar(extend=extend)
       plt.tight_layout()
 
 
