@@ -1217,7 +1217,7 @@ class schism_output():
 class schism_output2():
     nc = None
 
-    def __init__(self,ncdir,max_stack=False,norder=4):
+    def __init__(self,ncdir,min_stack=False,max_stack=False,norder=5):
       """
       read output files in folder and initialize grid
       """
@@ -1230,8 +1230,18 @@ class schism_output2():
       schismfiles=list(np.asarray(schismfiles)[np.argsort(nrs)])
       nrs=list(np.asarray(nrs)[np.argsort(nrs)])
 
+      if min_stack != False:
+        imin=np.where(np.asarray(nrs)==min_stack)[0][0]
+      else:
+        imin=0
       if max_stack != False:
-        schismfiles=schismfiles[:nrs.index(max_stack)]	
+        imax=np.where(np.asarray(nrs)==max_stack)[0][0]
+      else:
+        imax=len(nrs)+1
+
+      #schismfiles=schismfiles[:nrs.index(max_stack)]	        
+      schismfiles=schismfiles[imin:imax]	        
+
       try:
         #self.nc = xr.open_mfdataset(schismfiles)
         self.nc =xr.concat( [xr.open_dataset(fname).chunk() for fname in schismfiles], dim='time')
