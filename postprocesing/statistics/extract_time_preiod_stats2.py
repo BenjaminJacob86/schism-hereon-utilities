@@ -56,7 +56,9 @@ date1 = '20171030'
 
 # Folders of involded scenarios
 setupdir = ['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_CNTRL/',
+            '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_REF/',
             '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_LE/',
+            '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_HE/',
             '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/Veg_max/']
 outdir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/wwm_veg/stats_extract_Herwart/'  # output directory
 
