@@ -1664,11 +1664,19 @@ class schism_outputs_by_variable():
       self.ds=dict.fromkeys(varfiles)
       for key in files.keys():
          files[key]=np.hstack([np.sort(glob.glob('{:s}{:s}_{:s}.nc'.format(ncdir,key,'?'*iorder))) for iorder in range(1,6)])
+         files[key]
+         if '/' in files[key][0]:
+              check_files=[file.split('/')[-1] for file in files[key]] # add to prevent stack numbers in path         
+         else:              
+              check_files=[file for file in files[key]] # add to prevent stack numbers in path         
+         
          if key==list(files.keys())[0]:
               if (min_stack>0):
-                  min_stack=np.where([str(min_stack) in file for file in files[key]])[0][0]
+                  #min_stack=np.where([str(min_stack) in file for file in files[key]])[0][0]
+                  min_stack=np.where([str(min_stack) in file for file in check_files])[0][0]
               if (max_stack>-1):
-                  max_stack=np.where([str(max_stack) in file for file in files[key]])[0][0]+1
+                  #max_stack=np.where([str(max_stack) in file for file in check_files])[0][0]+1
+                  max_stack=np.where([str(max_stack) in file for file in check_files])[0][0]+1
               else:
                   max_stack=len(files[key])+1			
          #if key==list(files.keys())[0] and (max_stack>-1):

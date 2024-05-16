@@ -98,16 +98,17 @@ ibi_dir='/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2024_inst_elev/elevIBI/'
 # schism setup(s) for cross validation TG stations are selected based on coverage of first setup
 #setupdir: schism run directory, containts hgrid.* etc.
 
-setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2023_AMM15_control/','/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2023/']
-setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2024_inst_elev/']
-#setup_names=['FRC-AMM','FRC-IBI']
-setup_names=['FRC-IBI_elevINST']
+#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2023_AMM15_control/','/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2023/']
+#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2024_inst_elev/']
+setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_IBI_2023_AMM15_control/','/work/gg0028/g260114/RUNS/GermanBight/GB_LSC_2023/','/work/gg0028/g260114/RUNS/GermanBight/GB_LSC_2023/']
+setup_names=['FRC-AMM','FRC-AMM_LSCa','FRC-AMM_LSCb']
 
 
 ncdir=[setupdir[i] + 'outputs/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
-ncdir=[setupdir[i] + 'outputs01/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
+ncdir[1]='/work/gg0028/g260114/RUNS/GermanBight/GB_LSC_2023/V1/outputs/'
+#ncdir=[setupdir[i] + 'outputs01/' for i in range(len(setup_names))] 		  #   directory of schism nc output or 
 
-max_stack=13 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
+max_stack=20 #350   #  -1:= use all stacks. maximum stack number to load for newio outputs
 
 
 # True: use station output False: extract from netcdf (slow)
@@ -116,18 +117,19 @@ use_station_in=[False]*len(setup_names)
 ######################
  
 
-outdir=setupdir[0]+'TGvalid_AMM_IBI4/' 	    # output directory where images will be stored
-year=2024							# year to be analyesed if year=None use first year of model run 	 
-dtol=0.4    #0.05 					# distance tolerance in degree lon/lat towards tg stations 
+#outdir=setupdir[0]+'TGvalid_AMM_IBI4/' 	    # output directory where images will be stored
+outdir=setupdir[1]+'TGvalid_AMM_LSC_a_b/' 	    # output directory where images will be stored
+year=2023							# year to be analyesed if year=None use first year of model run 	 
+dtol=0.5    #0.05 					# distance tolerance in degree lon/lat towards tg stations 
 
 
 t00=np.datetime64('2023-01-03')#('2013-10-27') #=False		  # only use time period after t00 if t00=False use all avaialbale overlapping data	
-t00=np.datetime64('2024-01-02')
+#t00=np.datetime64('2024-01-02')
 #t11=np.datetime64('2013-11-04') #=False					  # only use time period until t00 if t11=False use all not in place yet
 
 remove_mean=True  					  # remove temporal mean from Data and Model to compare 2
-use_amm=False						  # compare against amm15
-use_ibi=True
+use_amm=True						  # compare against amm15
+use_ibi=False
 #shift_dt=np.timedelta64(1,'h')		  # timestep correction if necessary
 shift_dt=np.timedelta64(0,'h')		  # timestep correction if necessary
 
@@ -554,7 +556,7 @@ else:
 #tgdir='/gpfs/work/ksddata/observation/insitu/TideGauge/MyOcean/'  # station folders
 
 tgdir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/nrt.cmems-du.eu/Core/INSITU_NWS_PHYBGCWAV_DISCRETE_MYNRT_013_036/cmems_obs-ins_nws_phybgcwav_mynrt_na_irr/monthly/TG/'
-
+tgdir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/nrt.cmems-du.eu/Core/INSITU_NWS_PHYBGCWAV_DISCRETE_MYNRT_013_036/cmems_obs-ins_nws_phybgcwav_mynrt_na_irr/history/TG/'
 # files should be loaded for differetn situations
 #a) monthly folders withs several stations (aquire from CMEMS)
 #b) station folders with files for different dates emodnet via Sebastian
@@ -612,7 +614,7 @@ for i,setup_name in enumerate(setup_names):
 			#files=glob.glob(folder+'/*NO*.nc')
 			files=glob.glob(folder+'/*.nc')
 		for file in files[:nfiles]: 
-			#if 'Helgo' in file:
+			print('checking ' +file[file.rindex('/')+1:])
 			a=xr.open_dataset(file,decode_times=False)
 			coord=np.float(a.geospatial_lon_min),np.float(a.geospatial_lat_min)
 			if use_station_in[i]:
@@ -629,7 +631,9 @@ for i,setup_name in enumerate(setup_names):
 					name=folder[folder[:-1].rindex('/')+1:-1]
 				else:
 					#name=file[file.rindex('/')+1:].split('_')[-1].split('.')[0]
-					name=file[file.rindex('/')+1:].split('_')[-2]
+                    #TH
+					#name=file[file.rindex('/')+1:].split('_')[-2]
+					name=file[file.rindex('/')+1:-3].split('_')[-1]
 				#statioprint('using ' + name)
 				
 				if True: # (i==0):
@@ -644,6 +648,7 @@ for i,setup_name in enumerate(setup_names):
 					try:
 						ncs=MFDataset(ncfiles,aggdim='TIME')
 					except:
+						print('continue 1')                            
 						continue
 					t=(ncs['TIME'][:])
 					try:
@@ -660,7 +665,7 @@ for i,setup_name in enumerate(setup_names):
 						except:
 							#pass
 							continue
-					
+							print('continue 2')                            					
 					t0=dt.datetime.strptime(ncs['TIME'].units[11:30],'%Y-%m-%dT%H:%M:%S')
 					timeunit=ncs['TIME'].units[:ncs['TIME'].units.index(' ')]
 					t=t[igood]
@@ -703,6 +708,8 @@ for i,setup_name in enumerate(setup_names):
 						stations[setup_names[i]]['nn'].append(nn)
 					else:
 						print('not adding station '+name)
+			else:		
+				print('not in nn distance')            
 print('done selecting and loading tide gauges, found: '+str(len(stations['coord'])) + ' stations meeting criterea')
 		
 
@@ -873,7 +880,7 @@ if False:
 
 coords=np.asarray(stations['coord'])
 ######### load AMM15 setup ######################################
-use_amm=False
+#use_amm=True
 if use_amm:
 	print('load cmems Data ')
 	files=np.sort(glob.glob(oceandir+'*'+pattern+'*'+str(year)+'*'))
