@@ -505,7 +505,7 @@ class schism_setup(object):
       curl = dvdx - dudy  # curl per triangle not per node 
       
       if normCor:
-        lats = np.array(s.lat)[s.nvplt]
+        lats = np.array(self.lat)[s.nvplt]
         lats = np.mean(lats, axis = 1)  
         deg2rad=np.pi/180
         omega=2*np.pi/86400 
