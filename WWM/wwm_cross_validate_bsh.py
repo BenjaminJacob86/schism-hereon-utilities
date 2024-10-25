@@ -32,7 +32,7 @@ skip_n_first_days=dt.timedelta(days=skip_n_first_days)
 bouydir='/gpfs/work/jacobb/data/Validation/Waves/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
 
 # WWM run directories containing model station output
-WWMdirs=['//gpfs/work/jacobb/data/Validation/Waves/REF_seagrass/']
+WWMdirs=['/gpfs/work/jacobb/data/Validation/Waves/REF_seagrass/']
 
 #'/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_from_mistral/FRCbdCHeck/',
 #2nd '/gpfs/work/jacobb/data/RUNS/GermanBight/GermanBight_2017_2018/wave_900s_onpiece/'

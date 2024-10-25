@@ -435,7 +435,85 @@ class schism_setup(object):
       x2,y2 = (self.xdict[nodelist[1]],self.ydict[nodelist[1]])
       x3,y3 = (self.xdict[nodelist[2]],self.ydict[nodelist[2]])
       return ((x1-x3)*(y2-y3)-(x2-x3)*(y1-y3))/2.0
-  
+
+
+  def compute_gradient(self, u):
+      """
+      Computes the gradient of a scalar field.
+      Parameters:
+      s: schism grid strucutre (quads are splitted)
+      u: 2D scalar filed len(u)=number of grid nodes
+      Returns:
+      dudx,dudy: dx and dy components of gradient at each triangle
+      """
+      
+      num_triangles = self.nvplt.shape[0]
+      curl = np.zeros(num_triangles)
+      vertices=list(zip(np.asarray(self.x),np.asarray(self.y)))
+      curl = np.zeros(num_triangles)
+      
+      #separate into by indice values
+      self.x,self.y=np.asarray(self.x),np.asarray(self.y)
+      xs=self.x[self.nvplt]
+      ys=self.y[self.nvplt]
+      us=u[self.nvplt]
+      x1,x2,x3=xs[:,0],xs[:,1],xs[:,2]
+      y1,y2,y3=ys[:,0],ys[:,1],ys[:,2]
+      area = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
+      u1,u2,u3=us[:,0],us[:,1],us[:,2]
+      
+      #calculate accros all triangles
+      dudx = (u1 * (y2 - y3) + u2 * (y3 - y1) + u3 * (y1 - y2)) / (2 * area)
+      dudy = (u1 * (x3 - x2) + u2 * (x1 - x3) + u3 * (x2 - x1)) / (2 * area)
+      
+      return dudx,dudy  # Curl and vorticity are the same in 2D  
+
+  def compute_vorticity(self, u,v,normCor = False):
+      """
+      Computes the curl and vorticity of a velocity field on a triangular grid.
+      Parameters:
+      s: schism grid strucutre (quads are splitted)
+      u,v: 2D velocity filed vectors len(u)=number of grid nodes
+      normCor (bool): if True, the vorticity is normalized by Coriolis.
+      Returns:
+      curl: A list of curl values for each triangle.
+      """
+      
+      num_triangles = self.nvplt.shape[0]
+      curl = np.zeros(num_triangles)
+      vertices=list(zip(np.asarray(self.x),np.asarray(self.y)))
+      curl = np.zeros(num_triangles)
+      
+      #separate into by indice values
+      self.x,self.y=np.asarray(self.x),np.asarray(self.y)
+      xs=self.x[self.nvplt]
+      ys=self.y[self.nvplt]
+      us=u[self.nvplt]
+      vs=v[self.nvplt]
+      x1,x2,x3=xs[:,0],xs[:,1],xs[:,2]
+      y1,y2,y3=ys[:,0],ys[:,1],ys[:,2]
+      area = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
+      u1,u2,u3=us[:,0],us[:,1],us[:,2]
+      v1,v2,v3=vs[:,0],vs[:,1],vs[:,2]
+      
+      #calculate accros all triangles
+      dudx = (u1 * (y2 - y3) + u2 * (y3 - y1) + u3 * (y1 - y2)) / (2 * area)
+      dudy = (u1 * (x3 - x2) + u2 * (x1 - x3) + u3 * (x2 - x1)) / (2 * area)
+      dvdx = (v1 * (y2 - y3) + v2 * (y3 - y1) + v3 * (y1 - y2)) / (2 * area)
+      dvdy = (v1 * (x3 - x2) + v2 * (x1 - x3) + v3 * (x2 - x1)) / (2 * area)
+      
+      curl = dvdx - dudy  # curl per triangle not per node 
+      
+      if normCor:
+        lats = np.array(s.lat)[s.nvplt]
+        lats = np.mean(lats, axis = 1)  
+        deg2rad=np.pi/180
+        omega=2*np.pi/86400 
+        f=2*omega*np.sin(lats*deg2rad)
+        curl /=  f
+      
+      return curl  # Curl and vorticity are the same in 2D
+
     
   def proj_area(self,nodelist):
       #import numpy as np

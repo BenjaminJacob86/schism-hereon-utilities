@@ -53,7 +53,7 @@ fes_current_dir='/gpfs/work/jacobb/data/DATA/Tides/fes2014a_currents/';
 
 %% 0 c)  where resides the hgrid.gr3 and hgird.ll files ?
 %rundir='/gpfs/work/jacobb/data/RUNS/Europe/';
-rundir='/gpfs/work/jacobb/data/SETUPS/Ghana/V3' %'/gpfs/work/jacobb/data/SETUPS/GB_template/';%
+rundir='/gpfs/work/jacobb/data/SETUPS/Ghana/V4/' %'/gpfs/work/jacobb/data/SETUPS/GB_template/';%
 bounodes=extract_open_nodes(strcat(rundir,'hgrid.ll'));  % need obundaries in hgrid.ll
 %% 1- where to save bctides.in?
 %savedirs='/gpfs/work/jacobb/data/RUNS/Europe/tides/';
@@ -70,12 +70,12 @@ t_e='01-Feb-2022 00:00:00'; % Finish
 % 'L2','K2','K1','J1','EPS2','2N2'};
 
 %% 4- Select flag options (e.g run with tidal elevation only)
-iflag=3;            % 1: only tidal elevations; 2: elevations + uv velocity;
+iflag=1;            % 1: only tidal elevations; 2: elevations + uv velocity;
 					% Test BJ iflag=3   only velocity
 
 
 % forcing boundary format
-ops=[5 5 4 4];  % refer to SCHSIM manuals for details.
+ops=[5 4 4 4];  % refer to SCHSIM manuals for details.
 % alternativer for non forcing boundaries e.g rivers
 ops_river=[0 2 1 2]; % river boundary format
 
