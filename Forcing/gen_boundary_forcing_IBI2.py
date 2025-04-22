@@ -429,7 +429,7 @@ with open('bctides.in') as f:
 		print(line)
 		splitted=line.split()
 		bd+=np.sum([val.isdigit() for val in splitted[:5]])==5 #is openboundary 
-		if (splitted[1:5]==['4', '4', '4', '4']) | (splitted[1:5]==['5', '5', '5', '5']):
+		if (splitted[1:5]==['4', '4', '4', '4']) | (splitted[1:5]==['5', '5', '5', '5']) | (splitted[1:5]==['5', '5', '4', '4']):
 			openbd_segs.append(bd-1)
 print('create forcing for open boundaries '+str(openbd_segs))	
 ibd=np.hstack([np.asarray(s.bdy_segments[bdseg])-1 for bdseg in openbd_segs])		

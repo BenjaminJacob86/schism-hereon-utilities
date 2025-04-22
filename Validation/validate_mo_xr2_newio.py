@@ -73,7 +73,7 @@ setup_names=['Veg_CNTRL','Veg_CNTRL_Heatcheck'] # labels for plots
 
 
 # compare with amm 15
-add_amm15=False  											#
+add_amm15=True
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
 
@@ -83,7 +83,8 @@ outdir=setupdir[0]+'mo_valid4/'	   # output directory where images will be store
 
 Tmax=45
 Smax=49
- add plot comparing with Amm15 | Amm15 profiles 
+# add plot comparing with Amm15 | Amm15 profiles 
+#add_amm=True
 use_station_in=[False,False]					  # True: use station output False: extract from netcdf (slow)
 put_pics_to_texdoc=True    										# images will be put in tex document
 latexname='HRBallje.tex' #'GB1_5Ems_marnet.tex'										# in alphanumerical order 

@@ -3,6 +3,10 @@
 import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.collections import PolyCollection
+import xarray as xr
 plt.ion()
 
 class WW3_mesh():
@@ -17,15 +21,15 @@ class WW3_mesh():
 
 			nodestart=lines[lines.index('$Nodes\n')+1]
 			nodestart=lines.index(nodestart)
-			nnodes=np.int(lines[lines.index('$Nodes\n')+1].split(' ')[0])
+			nnodes=int(lines[lines.index('$Nodes\n')+1].split(' ')[0])
 
 			elemstart=lines[lines.index('$Elements\n')+1]
 			elemstart=lines.index(elemstart)
-			nelem=np.int(lines[lines.index('$Elements\n')+1].split(' ')[0])
+			nelem=int(lines[lines.index('$Elements\n')+1].split(' ')[0])
 
 			self.nodes=np.loadtxt('NBSext_bl.msh',skiprows=nodestart+1,max_rows=nnodes)[:,1:]
 			self.elems=np.loadtxt('NBSext_bl.msh',skiprows=elemstart+1,max_rows=nelem)[:,6:]-1
-			self.elems=np.asarray(self.elems,np.int)
+			self.elems=np.asarray(self.elems,int)
 			self.x,self.y,self.d=self.nodes[:,0],self.nodes[:,1],self.nodes[:,2]
 			
 		  # plot functions 

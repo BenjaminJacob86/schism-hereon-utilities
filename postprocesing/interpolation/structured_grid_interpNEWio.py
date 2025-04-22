@@ -94,7 +94,7 @@ reftime=dt.datetime(int(p.get_parameter('start_year')),int(p.get_parameter('star
 
 
 iuse=(parents!=-1) # intepolation parents
-for file in files[1:90]:
+for file in files:
     fname=file.split('/')[-1]
     print(file)    
     dsin=xr.open_dataset(file)

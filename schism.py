@@ -827,7 +827,8 @@ class schism_setup(object):
 	# add for new schism
     v = nc.createVariable('nsteps_from_cold','i',('one',))
     v[:] = 0.0#
-    v = nc.createVariable('cumsum_eta','i',('one',))
+    #v = nc.createVariable('cumsum_eta','i',('one',))
+    v = nc.createVariable('cumsum_eta','i',('node',))
     v[:] = 0.0
     nc.sync()
 
@@ -953,7 +954,7 @@ class schism_setup(object):
 
 	  
   # plot functions - using cartopy
-  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
+  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='utm',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_land=True,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
       valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
@@ -971,11 +972,26 @@ class schism_setup(object):
 
 
       ### cartopy ########
-      if proj=='merc':
-          proj=ccrs.Mercator()  # define Prijection
+      #if proj=='merc':
+      #    proj=ccrs.Mercator()  # define Prijection
       ## load higher resolutions coastline assets
-      else:
+      #else:
           proj=ccrs.PlateCarree()  # define Prijection
+
+      if proj == 'merc':
+          proj = ccrs.Mercator()
+      elif proj == 'utm':
+          # Automatically determine center lon/lat
+          clon = np.mean([np.min(self.lon), np.max(self.lon)])
+          # UTM is only defined between 80°S and 84°N
+          if not (-80 <= np.mean(self.lat) <= 84):
+              raise ValueError("UTM is only defined between 80°S and 84°N")
+          utm_zone = int((clon + 180) / 6) + 1
+          hemisphere = 'north' if np.mean(self.lat) >= 0 else 'south'
+          print(f"Using UTM Zone {utm_zone} ({hemisphere} hemisphere)")
+          proj = ccrs.UTM(zone=utm_zone, southern_hemisphere=(hemisphere == 'south'))
+      else:
+          proj = proj  #ccrs.PlateCarree()  # fallback
 
 
       if landcolor=='default':
@@ -1002,8 +1018,8 @@ class schism_setup(object):
 		
 		
       ax.set_extent(zoom_extend)
-      ax.add_feature(land_10m,zorder=-2)
-
+      if add_land:
+          ax.add_feature(land_10m,zorder=-2)
       if add_boarders:	  
           ax.add_feature(cfeature.BORDERS, linestyle=':')
       if add_lakes:
@@ -1077,7 +1093,7 @@ class schism_setup(object):
       
       
   # plot functions - using cartopy
-  def plotAtElemsGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
+  def plotAtElemsGeo(self,values,cmap=plt.cm.jet,mask=None,proj='utm',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_land=True,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
       valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
@@ -1094,12 +1110,20 @@ class schism_setup(object):
 
 
       ### cartopy ########
-      if proj=='merc':
-          proj=ccrs.Mercator()  # define Prijection
-      ## load higher resolutions coastline assets
+      if proj == 'merc':
+          proj = ccrs.Mercator()
+      elif proj == 'utm':
+          # Automatically determine center lon/lat
+          clon = np.mean([np.min(self.lon), np.max(self.lon)])
+          # UTM is only defined between 80°S and 84°N
+          if not (-80 <= np.mean(self.lat) <= 84):
+              raise ValueError("UTM is only defined between 80°S and 84°N")
+          utm_zone = int((clon + 180) / 6) + 1
+          hemisphere = 'north' if np.mean(self.lat) >= 0 else 'south'
+          print(f"Using UTM Zone {utm_zone} ({hemisphere} hemisphere)")
+          proj = ccrs.UTM(zone=utm_zone, southern_hemisphere=(hemisphere == 'south'))
       else:
-          proj=ccrs.PlateCarree()  # define Prijection
-
+          proj = proj  #ccrs.PlateCarree()  # fallback
 
       #landcolor='default'	
       if landcolor=='default':
@@ -1127,7 +1151,8 @@ class schism_setup(object):
 		
 		
       ax.set_extent(zoom_extend)
-      ax.add_feature(land_10m,zorder=-2)
+      if add_land:
+          ax.add_feature(land_10m,zorder=-2)
 
       if add_boarders:	  
           ax.add_feature(cfeature.BORDERS, linestyle=':')

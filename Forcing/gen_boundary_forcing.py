@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0,'/gpfs/work/ksddata/code/schism/scripts/schism-hzg-utilities/')
 sys.path.insert(0,'/pf/g/g260114/git/hzg/schism-hzg-utilities')
 sys.path.insert(0,'/work/gg0028/g260114/RUNS/GermanBight/GB_HR_Ballje/')
-sys.path.insert(0,'/gpfs/work/jacobb/data/RUNS/GB_template/schism-hzg-utilities/')
+sys.path.insert(0,'/work/gg0028/SCHISM/schism-hereon-utilities/')
 
 import matplotlib
 #matplotlib.use('AGG')
@@ -50,11 +50,11 @@ print('starting program')
 #t1=dt.datetime(2018,12,31)
 #dt_output=3600    # timestep for output [seconds]
 
-t0=dt.datetime(2021,11,2)		#  time start WK
-t1=dt.datetime(2023,1,1)		#  time end WK
+t0=dt.datetime(2017,11,14)		#  time start WK
+t1=dt.datetime(2017,11,20)		#  time end WK
 #dt_output=86400    # timestep for output [seconds] take as input
-dt_output=43200         # if zero take same temporal resolution as input data
-					# tine is counted from t0 on
+#dt_output=3600 #43200         # if zero take same temporal resolution as input data
+dt_output=0 #43200  					# tine is counted from t0 on
 
 # forcing source  amm15 gcoast.
 #schismdir='/gpfs/work/jacobb/data/SETUPS/SNS_Wei/' # setup directory
@@ -62,8 +62,8 @@ schismdir=os.getcwd()  # local
 #schismdir=schismdir[:schismdir.rindex('/')]+'/' #assume 
 #schismdir=rundir='/gpfs/work/jacobb/data/SETUPS/GB_template/'
 
-frocingtype='cmems'#'gcoast'
-frcdir='/gpfs/work/jacobb/data/routines/blacksea_routine/Download/download_cmems_BS/medsea/'
+frocingtype='amm15'#'gcoast'
+frcdir='forcing_by_file/' #'/work/gg0028/g260114/mengyao/forcing/'
 plot_bd=True # make control plots of boundaries
 
 #openbd_segs=[0,8]  # open boundary segments Determine from bctides in boundary configuration corresponding to
@@ -87,7 +87,7 @@ if frocingtype=='gcoast':
 	temp_files=''
 	uv_pattern=''
 
-elif (frocingtype=='amm15') or (frocingtype=='cmems') :
+elif (frocingtype=='amm15') or (frocingtype=='cmems') :    # change here the file patterns to adapt @ Mengyao
 	name_ssh='zos'
 	name_salt='so'
 	name_temp='thetao'
@@ -350,7 +350,7 @@ with open('bctides.in') as f:
 		print(line)
 		splitted=line.split()
 		bd+=np.sum([val.isdigit() for val in splitted[:5]])==5 #is openboundary 
-		if (splitted[1:5]==['4', '4', '4', '4']) | (splitted[1:5]==['5', '5', '5', '5']):
+		if (splitted[1:5]==['4', '4', '4', '4']) | (splitted[1:5]==['5', '5', '5', '5']) | (splitted[1:5]==['5', '5', '4', '4']):
 			openbd_segs.append(bd-1)
 print('create forcing for open boundaries '+str(openbd_segs))	
 ibd=np.hstack([np.asarray(s.bdy_segments[bdseg])-1 for bdseg in openbd_segs])		
@@ -399,14 +399,14 @@ try:
 		def date_from_name(files):
 			return np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex(date_prefix)+len(date_prefix)+file[file.rindex(date_prefix):].index(suffix)-1]) for file in files])
 	else: #amm 15	
-		dates=np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')]) for file in files])
+		dates=np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')].replace('-','')) for file in files])
 		def date_from_name(files):
 			returnnp.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')]) for file in files])
 	
 except:	
 	date_prefix='_' # if cmems download from motu and not NWS
 	suffix='_'
-	dates=np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')]) for file in files])
+	dates=np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')].replace('-','')) for file in files])
 	def date_from_name(files):
 		return np.asarray([ np.int(file[file.rindex(date_prefix)+len(date_prefix):file.rindex('.')]) for file in files])
 isort=np.argsort(dates)
@@ -416,10 +416,12 @@ isort=np.argsort(dates)
 ssh_dates,salt_dates,temp_dates,uv_dates=[],[],[],[]
 checkdates=isort[dates[isort]==dates[isort[0]]] # added for autocheck different file names
 for i in isort[dates[isort]==dates[isort[0]]]:
+	print(i)
 	dsi=xr.open_dataset(files[i])
 	alt=checkdates[checkdates!=i][0]
 	#f=np.asarray(files[i][files[i].rindex('/')+1:],str)
 	#f2=np.asarray(files[alt][files[alt].rindex('/')+1:],str)
+    #
 	f=files[i][files[i].rindex('/')+1:]
 	f2=files[alt][files[alt].rindex('/')+1:]
 	pattern=''
