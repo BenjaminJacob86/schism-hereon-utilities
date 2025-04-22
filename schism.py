@@ -978,7 +978,7 @@ class schism_setup(object):
       #else:
       # proj=ccrs.PlateCarree()  # define Prijection
 
-      proj_name=proj.copy()
+      proj_name=str(proj)
       if proj == 'merc':
           proj = ccrs.Mercator()
       elif proj == 'utm':
