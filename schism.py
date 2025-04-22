@@ -1090,13 +1090,13 @@ class schism_setup(object):
 
       #ax.set_xticks(xticks, crs=ccrs.PlateCarree())
       #ax.set_yticks(yticks, crs=ccrs.PlateCarree())
-      ax.set_xticks(xticks, crs=proj)
-      ax.set_yticks(yticks, crs=proj)
+      #ax.set_xticks(xticks, crs=proj)
+      #ax.set_yticks(yticks, crs=proj)
       
-      lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
-      lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
-      ax.xaxis.set_major_formatter(lon_formatter)
-      ax.yaxis.set_major_formatter(lat_formatter)
+      #lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
+      #lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
+      #ax.xaxis.set_major_formatter(lon_formatter)
+      #ax.yaxis.set_major_formatter(lat_formatter)
       
       # adjust height of colorbar to fit plot axes
       divider = make_axes_locatable(ax)
