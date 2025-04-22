@@ -976,7 +976,7 @@ class schism_setup(object):
       #    proj=ccrs.Mercator()  # define Prijection
       ## load higher resolutions coastline assets
       #else:
-          proj=ccrs.PlateCarree()  # define Prijection
+      # proj=ccrs.PlateCarree()  # define Prijection
 
       if proj == 'merc':
           proj = ccrs.Mercator()
