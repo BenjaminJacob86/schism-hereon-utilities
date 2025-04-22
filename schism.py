@@ -1076,8 +1076,11 @@ class schism_setup(object):
 
 
 
-      ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-      ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+      #ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+      #ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+      ax.set_xticks(xticks, crs=proj)
+      ax.set_yticks(yticks, crs=proj)
+      
       lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
       lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
       ax.xaxis.set_major_formatter(lon_formatter)
@@ -1210,8 +1213,8 @@ class schism_setup(object):
 
 
 
-      ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-      ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+      ax.set_xticks(xticks, crs=proj)
+      ax.set_yticks(yticks, crs=proj)
       lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
       lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
       ax.xaxis.set_major_formatter(lon_formatter)
