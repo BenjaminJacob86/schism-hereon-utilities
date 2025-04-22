@@ -978,6 +978,7 @@ class schism_setup(object):
       #else:
       # proj=ccrs.PlateCarree()  # define Prijection
 
+      proj_name=proj.copy()
       if proj == 'merc':
           proj = ccrs.Mercator()
       elif proj == 'utm':
@@ -1036,7 +1037,8 @@ class schism_setup(object):
       elif len(values)==len(self.nvplt):
           ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=np.ma.masked_array(values,mask=mask),shading='flat',cmap=cmap)# shading needs
       #ch=plt.colorbar(extend=extend)
-      plt.tight_layout()
+      if proj_name in ['merc', 'platecarree']:  # Only safe projections
+          plt.tight_layout()      
 
 
 	  
@@ -1073,6 +1075,16 @@ class schism_setup(object):
       #yticks=np.unique(np.round(np.linspace((lat.min()),(lat.max()),nyticks),1))
       xticks=np.unique(np.round(np.linspace((zoom_extend[0]),(zoom_extend[1]),nxticks),1))
       yticks=np.unique(np.round(np.linspace((zoom_extend[2]),(zoom_extend[3]),nyticks),1))
+
+
+
+      if proj_name in ['merc', 'platecarree']:
+          ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+          ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+          lon_formatter = LongitudeFormatter(number_format='.1f', degree_symbol='', dateline_direction_label=True)
+          lat_formatter = LatitudeFormatter(number_format='.1f', degree_symbol='')
+          ax.xaxis.set_major_formatter(lon_formatter)
+          ax.yaxis.set_major_formatter(lat_formatter)
 
 
 
