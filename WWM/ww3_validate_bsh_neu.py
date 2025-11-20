@@ -23,25 +23,35 @@ from data_and_model_classes import bsh_spec, WW3_mesh
 from validation_statistics_and_plots import interp_to_data_time,QQplot, TaylorDiagram,plotTaylor
 from matplotlib.collections import PolyCollection
 ########### SETTINGS #########
-bouydir='/gpfs/work/jacobb/data/SETUPS/WW3/bouy/bouys/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
+#bouydir='/gpfs/work/jacobb/data/SETUPS/WW3/bouybouydir/' #bsh buoy directory containing subfolders with the bouys and in those a file with name <subfolder>_BSH.spec
+bouydir='/gpfs/work/jacobb/data/VALIDATION/bouys/'
+bouydir='/gpfs/work/jacobb/data/VALIDATION/ncbouys/' # ncbouys
 
 comments='' #sentences following wwm and ww3 descriptions in pdf
 
 # names of stations
-keysOBS=['ELB','FN1','FN3','HEL','WES']
-keysWW3=['Elbe', 'Fino-1','Fino-3','Helgoland','Westerland']
+#keysOBS=['ELB','FN1','FN3','HEL','WES']
+#keysWW3=['Elbe', 'Fino-1','Fino-3','Helgoland','Westerland']
+keysOBS=['ELB','FN1','FN3']
+keysWW3=['Elbe', 'Fino-1','Fino-3']
+
+
 
 ## WWW3 ###
-ww3dirs=['/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd_routine/',]#['/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd/',]
+ww3dirs=['/gpfs/work/jacobb/data/VALIDATION/',]#['/gpfs/work/jacobb/data/SETUPS/WW3/WW4NBSbnd/',]
+
+
 ww3mesh='NBSext_bl.msh'
 ww3PointList='points.list'
 #ww3GridOutput==np.sort(glob(ww3dir+'mix_select_prev_post_run/'+'ww3.??????.nc'))# np.sort(glob(ww3dir+'defect_ncs/'+'ww3.????01.nc')) # ww3.201701.nc
-ww3PointOutput=[ww3dirs[0]+ww3.202108_09_spec.nc',]#'ww3.2021_01to03_spec.nc',] #ww3.202108_spec.nc',]
-ww3_names=['WW3_DWD']
-ww3_descriptions=[': WW3 run with betamax of 1.5 and Global DWD NRT wind',]
+ww3PointOutput=[ww3dirs[0]+'ww3.202412_spec.nc',]    #+ww3.202108_09_spec.nc',]#'ww3.2021_01to03_spec.nc',] #ww3.202108_spec.nc',]
+ww3PointOutput=[ww3dirs[0]+'ww3.2024_01_01_31_12_spec.nc',]    #+ww3.202108_09_spec.nc',]#'ww3.2021_01to03_spec.nc',] #ww3.202108_spec.nc',]
+
+ww3_names=['WW3_2024']
+ww3_descriptions=[': Luciana 2024 run',]
 
 
-pdfname="WW3_Validation_DWD_NRT_2021_2.pdf" # name of image pdf
+pdfname="WW3_Validation_Luciana_2024_december.pdf" # name of image pdf
 #####
 
 image_output_dir=ww3dirs[0]
@@ -65,7 +75,7 @@ def set_FS(Fincrease=1.4):
 	###########################
 set_FS(Fincrease=1.4)
 
-
+#  /gpfs/home/routine-ksd/bojen/bsh/netcdf/HEL/
 #################################################
 class bsh_ncbouy:
 	def __init__(self,files):
@@ -86,7 +96,7 @@ bouys=dict.fromkeys(subdirs)
 for subdir in subdirs:
 	files=list(np.sort(glob(bouydir+'{:s}/*.spt'.format(subdir))))
 	if len(files)>0:
-		bouys[subdir]=bsh_spec(files=files)
+		bouys[subdir]=pwd
 		ncbouys=False
 	else: #checheck netcdf 	
 		files=list(np.sort(glob(bouydir+'{:s}/*.nc'.format(subdir))))
@@ -336,7 +346,7 @@ nww3=len(ww3_names)
 nruns=len(ww3_names)
 sqrt=np.sqrt(nruns)	
 ncols=np.minimum(nruns,4)
-nrows=np.int(np.ceil(nruns/ncols))
+nrows=int(np.ceil(nruns/ncols))
 
 inchW=8.2/np.max((ncols,2))*1.1
 inchH=6/np.max((ncols,2))*1.1

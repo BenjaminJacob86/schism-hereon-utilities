@@ -11,3 +11,7 @@ for i,file in enumerate(files):
 		outname='.'.join((prefix,nr,suffix))
 		
 		os.rename(file,outname)
+
+
+ /work/gg0028/g260114/RUNS/GermanBight/GB_timeslices/GB1995_wave/
+ outputs_0

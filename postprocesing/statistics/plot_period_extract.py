@@ -47,6 +47,7 @@ ncdir2b='/work/gg0028/g260114/RUNS/Rest-Coast/analysis/2090_stats/20901001_20901
 image_dir='/work/gg0028/g260114/RUNS/Rest-Coast/analysis/pics/'
 
 #/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/stats_extract_2017_JJA/
+#/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/stats_extract_2017_JJA/
 
 #a=xr.open_dataset('/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/stats_extract_2017_JJA/Veg_CNTRL/bottomStressX_quantile95_1.nc')
 #plt.figure()

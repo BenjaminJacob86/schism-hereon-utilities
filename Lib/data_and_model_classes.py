@@ -21,7 +21,8 @@ import glob
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
-from cftime import utime
+#from cftime import utime
+import cftime
 import xarray as xr
 ######################## Observation Data CLasses ####################################################################
 
@@ -418,8 +419,9 @@ class cmems:  # load any Amm product, hopefully
 		i1=i0+19
 		self.t0=dt.datetime.strptime(self.nc['time'].units[i0:i1],'%Y-%m-%d %H:%M:%S')+dt.timedelta(seconds=float(self.nc['time'][0]))
 		timediff=np.diff((self.nc['time'][:2]))
-		ut=utime(self.nc['time'].units)
-		self.ts=ut.num2date(self.nc['time'][:] )
+ 		self.time_units = self.nc['time'].units
+		self.calendar = self.nc['time'].calendar if hasattr(self.nc['time'], 'calendar') else 'standard'
+		self.ts=cftime.num2date(self.time, units=self.time_units, calendar=self.calendar)
 			
 		
 class Amm15:
@@ -501,17 +503,18 @@ class schism_output():
       read output filename and initialize grid
       """
       import netCDF4
-      from netcdftime import utime
       self.nc = netCDF4.Dataset(filename)
       self.ncv = self.nc.variables
       self.lon = self.ncv['SCHISM_hgrid_node_x'][:]
       self.lat = self.ncv['SCHISM_hgrid_node_y'][:]
       self.nodeids = np.arange(len(self.lon))
-      self.nv = self.ncv['SCHISM_hgrid_face_nodes'][::3]-1
+      self.nv = self.ncv['SCHISM_hgrid_face_nodes'][:,:3]-1
       self.time = self.ncv['time'][:] # s
-      self.ut = utime(self.ncv['time'].units)
-      self.dates = self.ut.num2date(self.time)
+      self.time_units = self.ncv['time'].units
+      self.calendar = self.ncv['time'].calendar if hasattr(self.ncv['time'], 'calendar') else 'standard'
+      self.dates = cftime.num2date(self.time, units=self.time_units, calendar=self.calendar)
       self.node_tree_latlon = None
+
 
     def init_node_tree(self,latlon=True):
       """
@@ -803,11 +806,10 @@ class tide_portal_ascii():
 	import numpy as np
 	import pandas as pd
 	def __init__(self,file):
-		with open(file) as f:
 		
 		#read header
 		self.meta={}
-		with open(file) as f
+		with open(file) as f:
 			#lines=f.readlines()
 			header=True
 			for linenr,line in enumerate(lines):
