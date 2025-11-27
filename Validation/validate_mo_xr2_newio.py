@@ -60,20 +60,27 @@ mardir='/gpfs/work/ksddata/observation/insitu/Marnet_Sebastian/' 					  # myocea
 mardir='/work/gg0028/ksddata/insitu/CMEMS/NorthWestShelf/MO/'
 
 # list of model setups to validate first setup is reference for station selections
-#setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/',]
 setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/','/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/HeatTest/']
+setupdir=['/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/','/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/HeatTest/']
+
+#NCDIRS=['/work/gg0028/g260114/PROJECTS/FOCCUS/RUNS/NO_Ehype000/outputs_all2/','/work/gg0028/g260114/PROJECTS/FOCCUS/RUNS/Ehype000/outputs_all2/']
+setupdir=['/work/gg0028/g260114/PROJECTS/FOCCUS/RUNS/NO_Ehype000/','/work/gg0028/g260114/PROJECTS/FOCCUS/RUNS/Ehype000/']
+
 
 #ncdir=setupdir+'/outputs01/'
 year=2017		    # currently data between 2011 and 2018				
 dtol=0.05           # distance tolerance in degree lon/lat for station selection 
 
-ncdir=[setupdir[0] + 'outputs_all/'] 		  #   directory of schism nc output or 
-ncdir+=[setupdir[1] + 'outputs_all/']
-setup_names=['Veg_CNTRL','Veg_CNTRL_Heatcheck'] # labels for plots
+#ncdir=[setupdir[0] + 'outputs_all/'] 		  #   directory of schism nc output or 
+#ncdir+=[setupdir[1] + 'outputs_all/']
+setup_names=['Climatology','Ehype'] # labels for plots
+
+ncdir=[setupdir[0] + 'outputs_all2/'] 		  #   directory of schism nc output or 
+ncdir+=[setupdir[1] + 'outputs_all2/']
 
 
 # compare with amm 15
-add_amm15=True
+add_amm15=False
 #oceandir='/gpfs/work/jacobb/data/SETUPS/GermanBight/GB2018/amm15/'# amm15 dir
 
 
