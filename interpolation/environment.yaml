@@ -1,0 +1,24 @@
+name: schism-interpolation
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.8
+  - numpy>=1.20
+  - scipy>=1.8
+  - xarray>=2022.1
+  - netcdf4>=1.6.0
+  - pyyaml>=6.0
+  - zarr>=2.12.0
+  - numcodecs>=0.11.0
+  - dask>=2022.1
+  - matplotlib>=3.5
+  - pip
+  - pip:
+    # Note: schism package is typically a custom package
+    # Install it separately if available via pip, or install from source
+    # Example: pip install git+https://github.com/your-repo/schism.git
+    # Or: pip install /path/to/schism-package
+    # 
+    # If schism is available via pip:
+    # - schism
+

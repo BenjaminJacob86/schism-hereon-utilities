@@ -15,6 +15,20 @@ For 3D variables:
 For 2D variables (e.g., bottom stress):
     - Only horizontal interpolation is applied (always 2D).
 
+Time Format Handling:
+    SCHISM outputs can have time in two formats depending on the SCHISM version:
+    1. Properly formatted datetime (can be decoded normally by xarray)
+    2. Time since model start (e.g., "seconds since 10890000.0" - invalid CF format)
+    
+    The script automatically detects the time format and handles both cases:
+    - For properly formatted time: Uses datetime values directly
+    - For time since model start: Reads reference time from param.nml (model start date/time)
+      and converts to CF-compliant "seconds since YYYY-MM-DD HH:MM:SS" format
+    
+    The reference time is read from setup_dir/param.nml using the schism.param module.
+    If param.nml is not available, the script will attempt to extract reference time from
+    the time units attribute, but this may fail for numeric references.
+
 Variable definitions (names, units, standard names, long names, valid ranges) and global
 attributes are loaded from metadata.yaml file.
 
@@ -112,6 +126,26 @@ outdir = '/work/gg0028/g260114/EDITO/REF_sim_2017/'
 setup_dir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/'
 os.chdir(setup_dir)
 s = schism_setup()
+
+# Read reference time from param.nml for time format handling
+# SCHISM outputs can have time in two formats:
+# 1. Properly formatted datetime (can be decoded normally)
+# 2. Time since model start (needs reference time from param.nml)
+try:
+    from schism import param
+    p = param(setup_dir + '/param.nml')
+    # Create reference time as a scalar datetime64
+    reftime_dt = dt.datetime(int(p.get_parameter('start_year')),
+                             int(p.get_parameter('start_month')),
+                             int(p.get_parameter('start_day')),
+                             int(p.get_parameter('start_hour')), 0, 0)
+    reftime = np.datetime64(reftime_dt)
+    print(f"Reference time from param.nml: {reftime} ({reftime_dt})")
+except Exception as e:
+    print(f"Warning: Could not read reference time from param.nml: {e}")
+    print("  Will attempt to auto-detect time format from dataset")
+    reftime = None
+
 os.chdir(outdir)
 
 # Grid and interpolation info
@@ -151,16 +185,31 @@ else:
 for key in varfiles:
     varfiles[key] = list(np.sort(glob(indir + key + '_*.nc')))
 
-# Validate file lists are not empty
-empty_file_lists = [key for key, files in varfiles.items() if len(files) == 0]
-if empty_file_lists:
-    raise FileNotFoundError(f"No files found for variables: {empty_file_lists}. "
-                          f"Check input directory: {indir}")
+# Validate that out2d files exist (required)
+if len(varfiles['out2d']) == 0:
+    raise FileNotFoundError(f"No out2d files found in {indir}. "
+                          f"out2d files are required for interpolation.")
 
-# Validate all variable files have the same number of files
+# Check for missing variable files and warn (but continue)
+empty_file_lists = [key for key, files in varfiles.items() if len(files) == 0 and key != 'out2d']
+if empty_file_lists:
+    print(f"Warning: No files found for optional variables: {empty_file_lists}")
+    print(f"  These variables will be skipped. Continuing with available variables...")
+    # Remove empty variable types from varfiles
+    for key in empty_file_lists:
+        del varfiles[key]
+
+# Check for inconsistent file counts and warn
 file_counts = {key: len(files) for key, files in varfiles.items()}
 if len(set(file_counts.values())) > 1:
-    raise ValueError(f"Inconsistent number of files across variables: {file_counts}")
+    print(f"Warning: Inconsistent number of files across variables: {file_counts}")
+    print(f"  Using minimum count ({min(file_counts.values())}) to avoid index errors.")
+    # Use minimum count to avoid index errors
+    min_count = min(file_counts.values())
+    for key in varfiles:
+        if len(varfiles[key]) > min_count:
+            print(f"  Truncating {key} from {len(varfiles[key])} to {min_count} files")
+            varfiles[key] = varfiles[key][:min_count]
 
 # Variable names to process
 varnames = ['elevation', 'salinity', 'temperature', 'horizontalVelX', 'horizontalVelY',
@@ -230,34 +279,121 @@ for idate in range(total_files):
     print(f"\n{file_progress} Processing file set {idate + 1} of {total_files}")
     print(f"{'─'*70}")
     
-    infiles = [varfiles[key][idate] for key in varfiles.keys()]
-
-    # Validate input files exist
-    missing_files = [f for f in infiles if not os.path.exists(f)]
-    if missing_files:
-        raise FileNotFoundError(f"Input files not found: {missing_files}")
+    # Build infiles list, checking for missing files
+    infiles = []
+    available_keys = []
+    for key in varfiles.keys():
+        if idate < len(varfiles[key]):
+            file_path = varfiles[key][idate]
+            if os.path.exists(file_path):
+                infiles.append(file_path)
+                available_keys.append(key)
+            else:
+                print(f"{file_progress} Warning: File not found for {key}: {file_path}, skipping this variable type")
+        else:
+            print(f"{file_progress} Warning: No file available for {key} at index {idate}, skipping this variable type")
+    
+    # Validate that out2d file exists (required)
+    if len(infiles) == 0 or available_keys[0] != 'out2d':
+        print(f"{file_progress} Error: out2d file is missing for date {idate + 1}. Skipping this date.")
+        continue
 
     print(f"{file_progress} Opening and merging datasets...")
-    # Open datasets - keep lazy for efficient memory usage during align/merge
-    # xarray can optimize operations on lazy arrays, only loading what's needed
-    dsout2d = xr.open_dataset(infiles[0])
+    print(f"{file_progress} Available variable types: {', '.join(available_keys)}")
+    
+    # Open datasets and detect time format - SCHISM outputs can have time in two formats:
+    # 1. Properly formatted datetime (can be decoded normally)
+    # 2. Time since model start (numeric values, needs reference time from param.nml)
+    # Note: xarray may open files with decode_times=True even with malformed units,
+    # leaving time as numeric values, so we need to check the actual time values
+    try:
+        dsout2d = xr.open_dataset(infiles[0], decode_times=True)
+        # Check if time was actually decoded to datetime or is still numeric
+        time_values = dsout2d.time.values
+        time_units = dsout2d.time.attrs.get('units', '')
+        
+        # Check if time values are datetime-like or numeric
+        is_datetime = False
+        if len(time_values) > 0:
+            test_val = time_values[0]
+            # Check if it's a datetime type
+            if isinstance(test_val, (np.datetime64, dt.datetime)):
+                is_datetime = True
+            elif hasattr(test_val, 'dtype'):
+                # Check dtype - datetime64 or numeric
+                if np.issubdtype(test_val.dtype, np.datetime64):
+                    is_datetime = True
+                elif np.issubdtype(test_val.dtype, np.number):
+                    # Values are numeric - check if units suggest malformed time
+                    # Malformed units like "seconds since 10890000.0" indicate time since model start
+                    if 'since' in time_units:
+                        ref_part = time_units.split('since')[1].strip()
+                        # If reference part is just a number (not a date string), it's malformed
+                        # Check if it's a pure number (possibly with decimal point)
+                        ref_clean = ref_part.replace('.', '').replace('-', '').replace(':', '').replace(' ', '').replace('T', '')
+                        if ref_clean.isdigit() or ('.' in ref_part and ref_clean.replace('e', '').replace('E', '').replace('+', '').isdigit()):
+                            # Numeric reference (e.g., "10890000.0") - malformed, needs reference time
+                            is_datetime = False
+                        else:
+                            # Date string in units, but values are numeric - not decoded properly
+                            is_datetime = False
+                    else:
+                        # No 'since' in units and values are numeric - not decoded
+                        is_datetime = False
+        
+        if not is_datetime:
+            # Time is numeric, need to close and reopen with decode_times=False
+            dsout2d.close()
+            print(f"{file_progress} Time format detected: numeric values (seconds since model start)")
+            print(f"{file_progress}   Time units: {time_units}")
+            print(f"{file_progress}   Opening with decode_times=False and will use reference time from param.nml")
+            dsout2d = xr.open_dataset(infiles[0], decode_times=False)
+            time_format = 'seconds_since_start'  # Needs reference time
+        else:
+            time_format = 'datetime'  # Properly formatted
+            print(f"{file_progress} Time format detected: properly formatted datetime")
+    except (ValueError, TypeError) as e:
+        if 'unable to decode time units' in str(e) or 'decode_times' in str(e) or 'time' in str(e).lower():
+            print(f"{file_progress} Time format issue detected (exception during opening)")
+            print(f"{file_progress}   Error: {str(e)}")
+            print(f"{file_progress}   Opening with decode_times=False")
+            dsout2d = xr.open_dataset(infiles[0], decode_times=False)
+            time_format = 'seconds_since_start'  # Needs reference time
+        else:
+            raise
     
     # Validate dataset structure - check for required variables/dimensions
     required_dims = ['time']
     missing_dims = [dim for dim in required_dims if dim not in dsout2d.dims]
     if missing_dims:
-        raise ValueError(f"Dataset {infiles[0]} missing required dimensions: {missing_dims}")
+        print(f"{file_progress} Error: Dataset {infiles[0]} missing required dimensions: {missing_dims}. Skipping this date.")
+        dsout2d.close()
+        continue
     
     if 'dryFlagElement' not in dsout2d.variables:
-        raise ValueError(f"Dataset {infiles[0]} missing required variable: 'dryFlagElement'")
+        print(f"{file_progress} Error: Dataset {infiles[0]} missing required variable: 'dryFlagElement'. Skipping this date.")
+        dsout2d.close()
+        continue
     
-    if interp_surface_only:
-        # Extract surface layer only for 3D variables (still lazy)
-        ds_list = [xr.open_dataset(infiles[i]).sel(nSCHISM_vgrid_layers=-1) 
-                   for i in range(1, len(infiles))]
-    else:
-        # Load full 3D fields (still lazy)
-        ds_list = [xr.open_dataset(infiles[i]) for i in range(1, len(infiles))]
+    # Open additional datasets (skip out2d which is already open)
+    # Use same time decoding approach as out2d
+    ds_list = []
+    for i in range(1, len(infiles)):
+        try:
+            if time_format == 'seconds_since_start':
+                # Open with decode_times=False to match out2d
+                ds = xr.open_dataset(infiles[i], decode_times=False)
+            else:
+                ds = xr.open_dataset(infiles[i], decode_times=True)
+            
+            if interp_surface_only:
+                # Extract surface layer only for 3D variables (still lazy)
+                if 'nSCHISM_vgrid_layers' in ds.dims:
+                    ds = ds.sel(nSCHISM_vgrid_layers=-1)
+            ds_list.append(ds)
+        except Exception as e:
+            print(f"{file_progress} Warning: Could not open {infiles[i]}: {e}. Skipping this variable type.")
+            continue
 
     # Align all datasets to avoid NaNs (works with lazy arrays, files still open)
     dsout2d, *ds_list = xr.align(dsout2d, *ds_list, join="outer")
@@ -304,18 +440,75 @@ for idate in range(total_files):
             for inode in range(s.nnodes):
                 s.mask3d[inode, :s.ibbtm[inode]] = True
 
-        # Reformat time
+        # Reformat time - handle both SCHISM time formats
+        # time_format was already determined when opening the dataset
         time = dsin.time.values
-        attrs = dsin.time.attrs
-        t0 = time[0]
-        try:
-            seconds = (time - t0) / np.timedelta64(1, 's')
-        except:
-            seconds = (time - 0)
-        t0 = str(t0)[:19].replace('T', ' ')
-        tunit = "seconds since {:s}".format(t0)
+        attrs = dsin.time.attrs.copy()
+        
+        if time_format == 'seconds_since_start':
+            # Time is in seconds since model start - need reference time from param.nml
+            if reftime is None:
+                print(f"{file_progress} Error: Time format is 'seconds_since_start' but reference time (reftime) is None.")
+                print(f"{file_progress}   This should not happen if param.nml was read correctly.")
+                raise ValueError("Reference time (reftime) is required for time conversion but is None")
+            
+            # Use the reference time from param.nml
+            t0 = reftime
+            
+            # Time values are already in seconds since model start
+            # They represent elapsed time, so we keep them as-is but set the reference
+            seconds = time.astype(float)  # Ensure numeric
+            
+            print(f"{file_progress} Converting time: {len(seconds)} time steps")
+            print(f"{file_progress}   Time range: {seconds[0]:.0f} to {seconds[-1]:.0f} seconds since model start")
+            print(f"{file_progress}   Reference time: {t0}")
+            
+        else:
+            # Time is already in datetime format
+            t0 = time[0]
+            try:
+                seconds = (time - t0) / np.timedelta64(1, 's')
+            except:
+                # Fallback if timedelta conversion fails
+                if hasattr(time, 'astype'):
+                    # Try converting nanoseconds to seconds
+                    time_diff = time - t0
+                    if hasattr(time_diff, 'astype'):
+                        seconds = time_diff.astype('timedelta64[s]').astype(float)
+                    else:
+                        seconds = np.array([(t - t0).total_seconds() for t in time])
+                else:
+                    seconds = np.array([(t - t0).total_seconds() for t in time])
+            
+            print(f"{file_progress} Converting time: {len(seconds)} time steps from datetime format")
+        
+        # Format reference time for CF-compliant units string
+        # Ensure we have a scalar datetime64 value
+        if hasattr(t0, 'item') and not isinstance(t0, (np.datetime64, dt.datetime)):
+            # numpy array - extract scalar
+            t0 = t0.item()
+        elif isinstance(t0, np.ndarray) and t0.size == 1:
+            # numpy array with one element
+            t0 = t0.item()
+        
+        # Now format as string
+        if isinstance(t0, np.datetime64):
+            t0_str = str(t0)[:19].replace('T', ' ')
+        elif isinstance(t0, dt.datetime):
+            t0_str = t0.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            # Try to convert to datetime64 and format
+            try:
+                t0_dt64 = np.datetime64(t0)
+                t0_str = str(t0_dt64)[:19].replace('T', ' ')
+            except:
+                t0_str = str(t0)[:19].replace('T', ' ')
+        
+        tunit = "seconds since {:s}".format(t0_str)
         attrs['units'] = tunit
         attrs['_FillValue'] = False
+        
+        print(f"{file_progress} Time units set to: {tunit}")
 
         # Process each variable
         total_vars = len(varnames)

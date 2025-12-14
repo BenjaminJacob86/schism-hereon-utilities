@@ -18,6 +18,105 @@ from glob import glob
 import xarray as xr
 import zarr
 
+# Try to import Blosc from numcodecs (required for compression)
+try:
+    from numcodecs import Blosc
+except ImportError:
+    try:
+        # Fallback: some zarr versions may have Blosc directly
+        from zarr import Blosc
+    except ImportError:
+        # If Blosc is not available, we'll use a different compressor or None
+        Blosc = None
+        print("Warning: Blosc compressor not available. Compression may be limited.")
+
+
+def merge_and_convert_netcdf_to_zarr(nc_files, zarr_file, delete_nc=False, chunk_sizes=None, use_default_chunks=True):
+    """
+    Merge multiple NetCDF files along the time dimension and convert to a single Zarr file.
+    
+    Parameters:
+    -----------
+    nc_files : list
+        List of paths to input NetCDF files (will be sorted and concatenated along time)
+    zarr_file : str
+        Path to output Zarr file/directory
+    delete_nc : bool
+        If True, delete original NetCDF files after successful conversion
+    chunk_sizes : dict, optional
+        Dictionary of chunk sizes for dimensions
+    use_default_chunks : bool
+        If True and chunk_sizes is None, applies default chunking
+    """
+    print(f"Merging {len(nc_files)} NetCDF files into single Zarr: {zarr_file}")
+    print(f"  Input files: {len(nc_files)} files")
+    
+    try:
+        # Open all datasets lazily
+        datasets = [xr.open_dataset(f) for f in nc_files]
+        
+        # Concatenate along time dimension
+        # xarray will automatically align coordinates
+        print("  Concatenating datasets along time dimension...")
+        ds_merged = xr.concat(datasets, dim='time', data_vars='minimal', coords='minimal', compat='override')
+        
+        # Close individual datasets
+        for ds in datasets:
+            ds.close()
+        
+        print(f"  Merged dataset: {len(ds_merged.time)} time steps, {len(ds_merged.data_vars)} variables")
+        
+        # Apply default chunking if not specified and defaults are enabled
+        if chunk_sizes is None and use_default_chunks:
+            default_chunks = {}
+            if 'time' in ds_merged.dims:
+                default_chunks['time'] = min(24, len(ds_merged.time))
+            if 'latitude' in ds_merged.dims:
+                default_chunks['latitude'] = min(100, len(ds_merged.latitude))
+            if 'longitude' in ds_merged.dims:
+                default_chunks['longitude'] = min(100, len(ds_merged.longitude))
+            if 'depth' in ds_merged.dims:
+                default_chunks['depth'] = len(ds_merged.depth)
+            
+            if default_chunks:
+                chunk_sizes = default_chunks
+                print(f"  Using default chunk sizes: {chunk_sizes}")
+        
+        # Set chunk sizes if provided
+        if chunk_sizes:
+            # Build chunks dict with only dimensions that exist in the dataset
+            # xarray's chunk() expects dimension names as keys
+            chunks_dict = {}
+            for dim in ds_merged.dims:
+                if dim in chunk_sizes:
+                    chunks_dict[dim] = chunk_sizes[dim]
+                else:
+                    # Use full dimension size if not specified
+                    chunks_dict[dim] = len(ds_merged[dim])
+            # Apply chunking to the dataset
+            ds_merged = ds_merged.chunk(chunks_dict)
+        
+        # Write merged dataset to Zarr
+        print("  Writing merged dataset to Zarr...")
+        ds_merged.to_zarr(zarr_file, mode='w')
+        ds_merged.close()
+        
+        print(f"  ✓ Successfully merged and converted to: {zarr_file}")
+        
+        # Delete NetCDF files if requested
+        if delete_nc:
+            for nc_file in nc_files:
+                os.remove(nc_file)
+                print(f"  ✓ Deleted original NetCDF file: {nc_file}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"  ✗ Error merging and converting: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 
 def convert_netcdf_to_zarr(nc_file, zarr_file, delete_nc=False, chunk_sizes=None, use_default_chunks=True):
     """
@@ -64,27 +163,27 @@ def convert_netcdf_to_zarr(nc_file, zarr_file, delete_nc=False, chunk_sizes=None
         
         # Set chunk sizes if provided
         if chunk_sizes:
-            # Apply chunking to all data variables
-            for var in ds.data_vars:
-                chunks = {}
-                for dim in ds[var].dims:
-                    if dim in chunk_sizes:
-                        chunks[dim] = chunk_sizes[dim]
-                    else:
-                        chunks[dim] = len(ds[dim])  # Use full dimension if not specified
-                ds[var] = ds[var].chunk(chunks)
+            # Build chunks dict with only dimensions that exist in the dataset
+            # xarray's chunk() expects dimension names as keys
+            chunks_dict = {}
+            for dim in ds.dims:
+                if dim in chunk_sizes:
+                    chunks_dict[dim] = chunk_sizes[dim]
+                else:
+                    # Use full dimension size if not specified
+                    chunks_dict[dim] = len(ds[dim])
+            # Apply chunking to the dataset
+            ds = ds.chunk(chunks_dict)
         
         # Convert to Zarr
-        # Use zarr backend with appropriate encoding
-        encoding = {}
-        for var in ds.data_vars:
-            encoding[var] = {
-                'compressor': zarr.Blosc(cname='lz4', clevel=5, shuffle=1),
-                'chunks': None  # Let zarr determine optimal chunks
-            }
+        # xarray's to_zarr method will automatically use appropriate compression
+        # Zarr will use Blosc if available (via numcodecs), otherwise fall back to other compressors
+        # We don't need to specify compressor explicitly - let zarr/xarray choose defaults
+        # This avoids the "Expected a BytesBytesCodec" error
         
-        # Write to Zarr
-        ds.to_zarr(zarr_file, mode='w', encoding=encoding)
+        # Write to Zarr without explicit encoding/compression settings
+        # xarray will preserve all metadata and use sensible defaults for compression and chunking
+        ds.to_zarr(zarr_file, mode='w')
         ds.close()
         
         print(f"  ✓ Successfully converted to: {zarr_file}")
@@ -110,8 +209,14 @@ Examples:
   # Convert single file
   python convert_to_zarr.py output.nc output.zarr
   
-  # Convert all NetCDF files in directory
+  # Convert all NetCDF files in directory (individual files)
   python convert_to_zarr.py --input-dir ./outputs/ --pattern "*.nc"
+  
+  # Merge all files into one Zarr file
+  python convert_to_zarr.py --input-dir ./outputs/ --pattern "*.nc" --merge
+  
+  # Merge with custom output filename
+  python convert_to_zarr.py --input-dir ./outputs/ --pattern "*.nc" --merge --merge-output merged_data.zarr
   
   # Convert and delete originals
   python convert_to_zarr.py --input-dir ./outputs/ --delete-nc
@@ -135,6 +240,10 @@ Examples:
                        help='Chunk sizes for dimensions (e.g., time=24 lat=100 lon=100)')
     parser.add_argument('--no-default-chunks', action='store_true',
                        help='Disable default chunking, let zarr determine optimal chunks automatically')
+    parser.add_argument('--merge', action='store_true',
+                       help='Merge all input files into a single Zarr file (concatenate along time dimension)')
+    parser.add_argument('--merge-output', type=str,
+                       help='Output filename for merged Zarr file (only used with --merge)')
     
     args = parser.parse_args()
     
@@ -169,22 +278,51 @@ Examples:
             print(f"No files found matching pattern: {pattern}")
             sys.exit(1)
         
-        print(f"Found {len(nc_files)} file(s) to convert")
-        print(f"Output directory: {output_dir}\n")
-        
-        success_count = 0
-        for nc_file in nc_files:
-            # Generate output filename
-            base_name = os.path.splitext(os.path.basename(nc_file))[0]
-            zarr_file = os.path.join(output_dir, base_name + '.zarr')
+        if args.merge:
+            # Merge mode: combine all files into one Zarr
+            if args.merge_output:
+                zarr_file = os.path.join(output_dir, args.merge_output)
+            else:
+                # Generate default merged filename from pattern
+                # Extract base name from pattern (remove wildcards)
+                base_pattern = args.pattern.replace('*', '').replace('.nc', '')
+                if base_pattern:
+                    zarr_file = os.path.join(output_dir, f"{base_pattern}_merged.zarr")
+                else:
+                    zarr_file = os.path.join(output_dir, "merged.zarr")
+            
+            print(f"Found {len(nc_files)} file(s) to merge")
+            print(f"Output file: {zarr_file}\n")
             
             use_defaults = not args.no_default_chunks
-            if convert_netcdf_to_zarr(nc_file, zarr_file, args.delete_nc, chunk_sizes, use_defaults):
-                success_count += 1
-        
-        print(f"\n{'='*70}")
-        print(f"Conversion complete: {success_count}/{len(nc_files)} files converted successfully")
-        print(f"{'='*70}\n")
+            success = merge_and_convert_netcdf_to_zarr(nc_files, zarr_file, args.delete_nc, chunk_sizes, use_defaults)
+            
+            print(f"\n{'='*70}")
+            if success:
+                print(f"Merge and conversion complete: 1 merged Zarr file created")
+            else:
+                print(f"Merge and conversion failed")
+            print(f"{'='*70}\n")
+            
+            sys.exit(0 if success else 1)
+        else:
+            # Individual file mode: convert each file separately
+            print(f"Found {len(nc_files)} file(s) to convert")
+            print(f"Output directory: {output_dir}\n")
+            
+            success_count = 0
+            for nc_file in nc_files:
+                # Generate output filename
+                base_name = os.path.splitext(os.path.basename(nc_file))[0]
+                zarr_file = os.path.join(output_dir, base_name + '.zarr')
+                
+                use_defaults = not args.no_default_chunks
+                if convert_netcdf_to_zarr(nc_file, zarr_file, args.delete_nc, chunk_sizes, use_defaults):
+                    success_count += 1
+            
+            print(f"\n{'='*70}")
+            print(f"Conversion complete: {success_count}/{len(nc_files)} files converted successfully")
+            print(f"{'='*70}\n")
         
     elif args.input and args.output:
         # Single file mode

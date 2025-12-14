@@ -17,6 +17,8 @@
 #   --convert                 Enable Zarr conversion after interpolation
 #   --delete-nc               Delete NetCDF files after successful Zarr conversion
 #   --chunks DIM=SIZE         Chunk sizes for Zarr (e.g., time=24 lat=100 lon=100)
+#   --merge                   Merge all NetCDF files into a single Zarr file
+#   --merge-output NAME       Output filename for merged Zarr (only with --merge)
 #   --help                    Show this help message
 #
 # Examples:
@@ -31,6 +33,9 @@
 #
 #   # Run with custom chunking
 #   ./run_interpolation_workflow.sh --convert --chunks time=24 lat=100 lon=100
+#
+#   # Run with with conversion into a single instead multiple .zarr files
+#   ./run_interpolation_workflow.sh --convert --merge --merge-output full_2017_data.zarr
 ###############################################################################
 
 set -e  # Exit on error
@@ -94,6 +99,14 @@ while [[ $# -gt 0 ]]; do
             CHUNKS="$2"
             shift 2
             ;;
+        --merge)
+            MERGE=true
+            shift
+            ;;
+        --merge-output)
+            MERGE_OUTPUT="$2"
+            shift 2
+            ;;
         --help|-h)
             show_help
             exit 0
@@ -142,6 +155,12 @@ if [ "$DO_CONVERT" = true ]; then
     if [ -n "$CHUNKS" ]; then
         print_info "Custom chunking: $CHUNKS"
     fi
+    if [ "$MERGE" = true ]; then
+        print_info "Merge mode: ENABLED (all files → single Zarr)"
+        if [ -n "$MERGE_OUTPUT" ]; then
+            print_info "Merge output filename: $MERGE_OUTPUT"
+        fi
+    fi
 else
     print_info "Zarr conversion: DISABLED"
 fi
@@ -167,7 +186,16 @@ if [ "$DO_CONVERT" = true ]; then
     echo ""
     
     # Build conversion command
-    CONVERT_CMD="$PYTHON_CMD $CONVERT_SCRIPT --input-dir . --pattern 'schism-wwm*.nc'"
+    if [ "$MERGE" = true ]; then
+        # Merge mode: combine all files into one Zarr
+        CONVERT_CMD="$PYTHON_CMD $CONVERT_SCRIPT --input-dir . --pattern 'schism-wwm*.nc' --merge"
+        if [ -n "$MERGE_OUTPUT" ]; then
+            CONVERT_CMD="$CONVERT_CMD --merge-output $MERGE_OUTPUT"
+        fi
+    else
+        # Individual file mode
+        CONVERT_CMD="$PYTHON_CMD $CONVERT_SCRIPT --input-dir . --pattern 'schism-wwm*.nc'"
+    fi
     
     if [ "$DELETE_NC" = true ]; then
         CONVERT_CMD="$CONVERT_CMD --delete-nc"
