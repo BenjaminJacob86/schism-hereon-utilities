@@ -583,10 +583,52 @@ for idate in range(total_files):
                         ibelow, iabove, weights_vert = get_layer_weights(s, -z_levels[k], t)
                         s.nodeinds = np.arange(s.nnodes)
                         field3D = dsin[varname][t, :].values
-                        interp_slice = weights_vert[0, :] * field3D[s.nodeinds, ibelow] + \
-                                      weights_vert[1, :] * field3D[:, :][s.nodeinds, iabove]
+                        
+                        # Get values at ibelow and iabove layers
+                        field_below = field3D[s.nodeinds, ibelow]
+                        field_above = field3D[s.nodeinds, iabove]
+                        
+                        # Mask FillValues - don't interpolate where either layer has FillValue
+                        # This prevents FillValues from being interpolated into valid data areas
+                        valid_below = (field_below != FillValue) & ~np.isnan(field_below)
+                        valid_above = (field_above != FillValue) & ~np.isnan(field_above)
+                        valid_interp = valid_below & valid_above
+                        
+                        # Initialize interpolated slice with FillValue
+                        interp_slice = np.full(s.nnodes, FillValue, dtype=field3D.dtype)
+                        
+                        # Only interpolate where both layers are valid
+                        if np.any(valid_interp):
+                            interp_slice[valid_interp] = (weights_vert[0, valid_interp] * field_below[valid_interp] + 
+                                                          weights_vert[1, valid_interp] * field_above[valid_interp])
+                        
+                        # Handle NaN weights (should already be FillValue, but ensure it)
                         interp_slice[np.isnan(interp_slice)] = FillValue
-                        data[t, k, ii, jj] = (interp_slice[s.nvplt[valid_parents, :]] * weights).sum(axis=1)
+                        
+                        # Horizontal interpolation with FillValue masking (vectorized for performance)
+                        # Get all parent values at once
+                        parent_values_all = interp_slice[s.nvplt[valid_parents, :]]  # Shape: (n_targets, n_parents)
+                        
+                        # Create mask for valid (non-FillValue, non-NaN) values
+                        valid_mask = (parent_values_all != FillValue) & ~np.isnan(parent_values_all)
+                        
+                        # Compute weighted sums, masking FillValues
+                        # Set FillValues to 0 in values and weights for computation, then renormalize
+                        masked_values = np.where(valid_mask, parent_values_all, 0.0)
+                        masked_weights = np.where(valid_mask, weights, 0.0)
+                        
+                        # Sum of weights per target (for renormalization)
+                        weight_sums = np.sum(masked_weights, axis=1)
+                        
+                        # Compute weighted sum
+                        weighted_sums = np.sum(masked_values * masked_weights, axis=1)
+                        
+                        # Renormalize and assign (only where we have valid weights)
+                        interp_values = np.full(len(target_inds), FillValue, dtype=field3D.dtype)
+                        valid_targets = weight_sums > 0
+                        interp_values[valid_targets] = weighted_sums[valid_targets] / weight_sums[valid_targets]
+                        
+                        data[t, k, ii, jj] = interp_values
                 else:
                     # 2D or surface-only interpolation
                     interp_slice = dsin[varname][t, :].values
