@@ -1,0 +1,7 @@
+apiVersion: v2
+name: schism-interpolation
+description: Helm chart to run SCHISM interpolation + optional Zarr conversion
+type: application
+version: 0.1.0
+appVersion: "1.0"
+

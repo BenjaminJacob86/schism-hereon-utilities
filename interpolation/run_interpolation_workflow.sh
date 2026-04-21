@@ -46,6 +46,8 @@ CONVERT_SCRIPT="convert_to_zarr.py"
 DO_CONVERT=false
 DELETE_NC=false
 CHUNKS=""
+MERGE=false
+MERGE_OUTPUT=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -76,7 +78,14 @@ show_help() {
     head -n 30 "$0" | grep -E "^# " | sed 's/^# //' | sed 's/^#//'
 }
 
-# Parse command line arguments
+# Allow environment variables to pre-set options (use lower-case true/false)
+if [[ "${DO_CONVERT,,}" == "true" ]]; then DO_CONVERT=true; fi
+if [[ "${DELETE_NC,,}" == "true" ]]; then DELETE_NC=true; fi
+if [[ "${MERGE,,}" == "true" ]]; then MERGE=true; fi
+if [[ -n "${MERGE_OUTPUT}" ]]; then MERGE_OUTPUT="${MERGE_OUTPUT}"; fi
+if [[ -n "${CHUNKS}" ]]; then CHUNKS="${CHUNKS}"; fi
+
+# Parse command line arguments (override env if provided)
 while [[ $# -gt 0 ]]; do
     case $1 in
         --interp-script)

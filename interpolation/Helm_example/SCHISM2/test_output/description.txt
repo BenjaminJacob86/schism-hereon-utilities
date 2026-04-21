@@ -1,0 +1,5 @@
+run_description:
+ grid_dir: NSEA
+ forcing_dir: NSEA/forcing_output/
+ start_date: 2025-10-01
+ end_date: 2025-10-03

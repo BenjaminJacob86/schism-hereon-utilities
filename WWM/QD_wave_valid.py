@@ -191,7 +191,8 @@ ww3.open_point_output('/gpfs/work/jacobb/data/LUCIANA/WW3/ww3.202412_spec.nc')
 
 for nr,coord in enumerate(zip(ds_spec.longitude[0,:].values,ds_spec.latitude[0,:].values)):
    
-    #break
+    if nr == 21:
+        break
    
     plt.close('all')
     xi,yi=coord
@@ -225,7 +226,7 @@ for nr,coord in enumerate(zip(ds_spec.longitude[0,:].values,ds_spec.latitude[0,:
     plt.gcf().autofmt_xdate()
     plt.legend()
 
-    plt.pause(1)    
+    plt.pause(4)    
     
     
 

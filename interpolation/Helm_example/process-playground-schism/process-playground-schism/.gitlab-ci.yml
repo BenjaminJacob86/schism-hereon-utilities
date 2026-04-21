@@ -1,0 +1,39 @@
+stages:
+  - check-code
+  - upload
+
+default:
+  image: mambaorg/micromamba:1.5.6
+  cache:
+    key:
+      files:
+        - environment.yaml
+    paths:
+      - ${CI_PROJECT_DIR}/.env
+  before_script:
+    - micromamba env create -f environment.yaml -p ${CI_PROJECT_DIR}/.env || true
+    - eval "$(micromamba shell hook --shell bash)"
+    - shopt -s expand_aliases
+    - alias envrun="micromamba run -p ${CI_PROJECT_DIR}/.env"
+    - envrun git config --global --add safe.directory $CI_PROJECT_DIR
+
+check-format:
+  stage: check-code
+  tags:
+    - docker
+  script:
+    - envrun make check-format
+
+lint-charts:
+  stage: check-code
+  tags:
+    - docker
+  script:
+    - envrun make lint-charts
+
+upload:
+  stage: upload
+  tags:
+    - docker
+  script:
+    - envrun make publish-charts

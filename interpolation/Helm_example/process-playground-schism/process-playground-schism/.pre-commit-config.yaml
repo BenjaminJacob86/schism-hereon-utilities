@@ -1,0 +1,32 @@
+# Source: https://towardsdatascience.com/pre-commit-hooks-you-must-know-ff247f5feb7e
+#
+# Install pre-commit for this project (the very next commit will actually downloads and sets things up):
+#   pre-commit install
+# Apply to all files without committing:
+#   pre-commit run --all-files
+# Update this file with latest repository versions:
+#   pre-commit autoupdate
+# Use option `--no-verify` to ignore pre-commit at commit time:
+#   git commit --no-verify ...
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: end-of-file-fixer
+      - id: check-executables-have-shebangs
+      - id: fix-byte-order-marker
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-xml
+        exclude: .*.svg
+      - id: debug-statements
+      - id: detect-private-key
+        exclude: demo/autosubmit/load_ssh_key
+      - id: trailing-whitespace
+        exclude: setup.cfg
+      - id: mixed-line-ending
+      - id: pretty-format-json
+        args: [--autofix, --no-sort-keys]

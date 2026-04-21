@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string" },
+        "tag": { "type": "string" },
+        "pullPolicy": { "type": "string" }
+      }
+    },
+    "processInputs": {
+      "type": "object",
+      "properties": {
+        "INPUT_S3_BUCKET": { "type": "string" },
+        "INPUT_S3_PREFIX": { "type": "string" },
+        "EDITO_INFRA_OUTPUT": { "type": "string" }
+      }
+    },
+    "processOptions": {
+      "type": "object",
+      "properties": {
+        "INTERP_SURFACE_ONLY": { "type": "string" },
+        "DO_CONVERT": { "type": "string" },
+        "MERGE": { "type": "string" },
+        "MERGE_OUTPUT": { "type": "string" },
+        "DELETE_NC": { "type": "string" },
+        "CHUNKS": { "type": "string" },
+        "NO_DEFAULT_CHUNKS": { "type": "string" }
+      }
+    },
+    "processOutputs": {
+      "type": "object",
+      "properties": {
+        "outputPrefix": { "type": "string" }
+      }
+    }
+  }
+}
+

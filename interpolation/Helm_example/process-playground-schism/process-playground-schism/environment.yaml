@@ -1,0 +1,10 @@
+name: process-playground
+channels:
+  - https://nexus.mercator-ocean.fr/repository/conda-proxy
+  - conda-forge
+dependencies:
+  - git==2.45.0
+  - pre-commit==3.7.0
+  - kubernetes-helm==3.14.4
+  - make==4.3
+  - wget==1.21.4

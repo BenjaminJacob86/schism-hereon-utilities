@@ -1,0 +1,25 @@
+ docker run -it  schism sh
+ 
+ 
+ 
+ 
+ copy files into container:
+ 
+Yes, you can copy files from your host system into a running Docker container using the docker cp command. Here's how:
+
+Syntax:
+bash
+Code kopieren
+docker cp <source-path> <container-id>:<destination-path>
+Example:
+If you have a file example.txt on your host and you want to copy it into /home inside the running container with ID abcd1234, run:
+
+bash
+Code kopieren
+docker cp example.txt abcd1234:/home/example.txt
+
+
+ docker cp setup ccc40a0ad786213f7fd2d80bfef50606bc71f43eef707438096e438a51eafd8a:/rundir/
+ 
+ 
+docker pwdrun -it  schism_container /bin/bash

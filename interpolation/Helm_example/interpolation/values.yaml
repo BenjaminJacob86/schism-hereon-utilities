@@ -1,0 +1,53 @@
+# Default values for schism-interpolation
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/your-org/schism-interpolation
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+s3:
+  enabled: true
+  endpoint: ""
+
+resources: {}
+  # limits:
+  #   cpu: 2
+  #   memory: 8Gi
+  # requests:
+  #   cpu: 1
+  #   memory: 4Gi
+
+processInputs:
+  # Input S3 bucket/prefix for SCHISM outputs (NetCDF)
+  INPUT_S3_BUCKET: ""
+  INPUT_S3_PREFIX: ""
+  # Output path inside the container
+  EDITO_INFRA_OUTPUT: "/output-data"
+
+processOutputs:
+  # Optional custom S3 output prefix (inside the namespace bucket).
+  # If empty, defaults to: s3://<namespace>/<release>/
+  outputPrefix: ""
+
+processOptions:
+  INTERP_SURFACE_ONLY: "true"   # "true" or "false"
+  DO_CONVERT: "true"            # run NetCDF -> Zarr conversion
+  MERGE: "true"                 # merge all NetCDF files into one Zarr
+  MERGE_OUTPUT: "merged.zarr"   # name for merged Zarr when MERGE=true
+  DELETE_NC: "false"            # delete NetCDF after conversion
+  CHUNKS: ""                    # e.g., "time=24 lat=100 lon=100"
+  NO_DEFAULT_CHUNKS: "false"    # if "true", disable default chunking
+
+job:
+  backoffLimit: 4
+
+copyOutput:
+  enabled: true
+

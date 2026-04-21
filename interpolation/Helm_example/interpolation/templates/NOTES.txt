@@ -1,0 +1,5 @@
+Thanks for installing the schism-interpolation chart!
+
+To view the Job output location:
+  kubectl get configmap {{ .Release.Name }}-job-outputs -o jsonpath='{.data.jobResults}'
+

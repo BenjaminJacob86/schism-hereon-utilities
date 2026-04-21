@@ -16,10 +16,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 import datetime as dt
-try:
-    import dask
-except:
-    print('dask not avaialbe using serial xarrray')    
 import xarray as xr
 import glob
 from scipy.spatial import cKDTree
@@ -702,10 +698,7 @@ class schism_setup(object):
     returns the element id
     """
     ridx=-1
-    #if type(numcells)==list
-    #  numcells0=numcells.copy()
-    #else:    
-    #  numcells=numcells
+    numcells=numcells
     while ridx<0:
       if latlon:
         if self.element_tree_latlon==None:
@@ -787,7 +780,7 @@ class schism_setup(object):
     if ((inum,znum) != (self.nnodes,self.znum)):
       print('  shape(tr_nd) = (%d,%d) while setup requires (%d,%d)'%(inum,znum,self.nnodes,self.znum))
 
-    import netCDF4
+    #import netCDF4
     nc = netCDF4.Dataset(filename,'w',format='NETCDF4_CLASSIC')
     nc.createDimension('node',self.nnodes)
     nc.createDimension('elem',self.nelements)
@@ -834,8 +827,7 @@ class schism_setup(object):
 	# add for new schism
     v = nc.createVariable('nsteps_from_cold','i',('one',))
     v[:] = 0.0#
-    #v = nc.createVariable('cumsum_eta','i',('one',))
-    v = nc.createVariable('cumsum_eta','i',('node',))
+    v = nc.createVariable('cumsum_eta','i',('one',))
     v[:] = 0.0
     nc.sync()
 
@@ -872,7 +864,7 @@ class schism_setup(object):
       """
       write boundary data for schism setup
       """
-      import netCDF4
+      #import netCDF4
 
       if self.num_bdy_nodes==0:
         print('  setup has no open boundaries')
@@ -961,7 +953,7 @@ class schism_setup(object):
 
 	  
   # plot functions - using cartopy
-  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='utm',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_land=True,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
+  def plotAtnodesGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
       valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
@@ -979,28 +971,12 @@ class schism_setup(object):
 
 
       ### cartopy ########
-      #if proj=='merc':
-      #    proj=ccrs.Mercator()  # define Prijection
+      if proj=='merc':
+          proj=ccrs.Mercator()  # define Prijection
       ## load higher resolutions coastline assets
       #else:
-      # proj=ccrs.PlateCarree()  # define Prijection
-
-      proj_name=str(proj)
-      if proj == 'merc':
-          proj = ccrs.Mercator()
-      elif proj == 'utm':
-          # Automatically determine center lon/lat
-          clon = np.mean([np.min(self.lon), np.max(self.lon)])
-          # UTM is only defined between 80°S and 84°N
-          if not (-80 <= np.mean(self.lat) <= 84):
-              raise ValueError("UTM is only defined between 80°S and 84°N")
-          utm_zone = int((clon + 180) / 6) + 1
-          hemisphere = 'north' if np.mean(self.lat) >= 0 else 'south'
-          print(f"Using UTM Zone {utm_zone} ({hemisphere} hemisphere)")
-          proj = ccrs.UTM(zone=utm_zone, southern_hemisphere=(hemisphere == 'south'))
-      else:
-          proj = proj  #ccrs.PlateCarree()  # fallback
-
+      #    #proj=ccrs.PlateCarree()  # define Prijection
+          proj=ccrs.PlateCarree()  # define Prijection
 
       if landcolor=='default':
         landcolor=cfeature.COLORS['land']
@@ -1026,8 +1002,8 @@ class schism_setup(object):
 		
 		
       ax.set_extent(zoom_extend)
-      if add_land:
-          ax.add_feature(land_10m,zorder=-2)
+      ax.add_feature(land_10m,zorder=-2)
+
       if add_boarders:	  
           ax.add_feature(cfeature.BORDERS, linestyle=':')
       if add_lakes:
@@ -1044,8 +1020,7 @@ class schism_setup(object):
       elif len(values)==len(self.nvplt):
           ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=np.ma.masked_array(values,mask=mask),shading='flat',cmap=cmap)# shading needs
       #ch=plt.colorbar(extend=extend)
-      if proj_name in ['merc', 'platecarree']:  # Only safe projections
-          plt.tight_layout()      
+      plt.tight_layout()
 
 
 	  
@@ -1085,25 +1060,12 @@ class schism_setup(object):
 
 
 
-      if proj_name in ['merc', 'platecarree']:
-          ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-          ax.set_yticks(yticks, crs=ccrs.PlateCarree())
-          lon_formatter = LongitudeFormatter(number_format='.1f', degree_symbol='', dateline_direction_label=True)
-          lat_formatter = LatitudeFormatter(number_format='.1f', degree_symbol='')
-          ax.xaxis.set_major_formatter(lon_formatter)
-          ax.yaxis.set_major_formatter(lat_formatter)
-
-
-
-      #ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-      #ax.set_yticks(yticks, crs=ccrs.PlateCarree())
-      #ax.set_xticks(xticks, crs=proj)
-      #ax.set_yticks(yticks, crs=proj)
-      
-      #lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
-      #lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
-      #ax.xaxis.set_major_formatter(lon_formatter)
-      #ax.yaxis.set_major_formatter(lat_formatter)
+      ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+      ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+      lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
+      lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
+      ax.xaxis.set_major_formatter(lon_formatter)
+      ax.yaxis.set_major_formatter(lat_formatter)
       
       # adjust height of colorbar to fit plot axes
       divider = make_axes_locatable(ax)
@@ -1115,7 +1077,7 @@ class schism_setup(object):
       
       
   # plot functions - using cartopy
-  def plotAtElemsGeo(self,values,cmap=plt.cm.jet,mask=None,proj='utm',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_land=True,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
+  def plotAtElemsGeo(self,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=None,drycolor='grey',ax=None,add_boarders=True,add_rivers=True,add_lakes=True,landcolor='default'):
       """	
       visualisation routine plotting data at nodes (quads are splitted) and use cartopy map to draw a map
       valid projections are merc:=mercator and stere:=stereographic      plotAtnodesGeo(s,values,cmap=plt.cm.jet,mask=None,proj='merc',offset=0.1,stock_image=False,extend='both',region_limit=(lonmin,lonmax,latmin,latmax) or None,drycolor='grey',ax= geoaxis handle for subbplots with cartopy,add_boarders=False,add_rivers=False,add_rlakes=False):
@@ -1132,20 +1094,12 @@ class schism_setup(object):
 
 
       ### cartopy ########
-      if proj == 'merc':
-          proj = ccrs.Mercator()
-      elif proj == 'utm':
-          # Automatically determine center lon/lat
-          clon = np.mean([np.min(self.lon), np.max(self.lon)])
-          # UTM is only defined between 80°S and 84°N
-          if not (-80 <= np.mean(self.lat) <= 84):
-              raise ValueError("UTM is only defined between 80°S and 84°N")
-          utm_zone = int((clon + 180) / 6) + 1
-          hemisphere = 'north' if np.mean(self.lat) >= 0 else 'south'
-          print(f"Using UTM Zone {utm_zone} ({hemisphere} hemisphere)")
-          proj = ccrs.UTM(zone=utm_zone, southern_hemisphere=(hemisphere == 'south'))
-      else:
-          proj = proj  #ccrs.PlateCarree()  # fallback
+      if proj=='merc':
+          proj=ccrs.Mercator()  # define Prijection
+      ## load higher resolutions coastline assets
+      #else:
+      #    proj=ccrs.PlateCarree()  # define Prijection
+
 
       #landcolor='default'	
       if landcolor=='default':
@@ -1173,8 +1127,7 @@ class schism_setup(object):
 		
 		
       ax.set_extent(zoom_extend)
-      if add_land:
-          ax.add_feature(land_10m,zorder=-2)
+      ax.add_feature(land_10m,zorder=-2)
 
       if add_boarders:	  
           ax.add_feature(cfeature.BORDERS, linestyle=':')
@@ -1187,8 +1140,7 @@ class schism_setup(object):
           ax.stock_img()
 		
       if len(values)==self.nnodes:  	
-          #ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values[self.nvplt[:,:3]].mean(axis=1),shading=shading,cmap=cmap)# shading needs gouraud to allow correct update
-          ph=ax.tripcolor(self.projx,self.projy,self.nvplt,values,shading='gouraud',cmap=cmap)# shading needs gouraud to allow correct update
+          ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values[self.nvplt[:,:3]].mean(axis=1),shading='flat',cmap=cmap)# shading needs gouraud to allow correct update
       elif len(values)==len(self.nvplt):
           ph=ax.tripcolor(self.projx,self.projy,self.nvplt,facecolors=values,shading='flat',mask=mask,cmap=cmap)# shading needs
       #ch=plt.colorbar(extend=extend)
@@ -1233,8 +1185,8 @@ class schism_setup(object):
 
 
 
-      ax.set_xticks(xticks, crs=proj)
-      ax.set_yticks(yticks, crs=proj)
+      ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+      ax.set_yticks(yticks, crs=ccrs.PlateCarree())
       lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
       lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
       ax.xaxis.set_major_formatter(lon_formatter)
@@ -1303,140 +1255,7 @@ class schism_setup(object):
     
     return parent,np.stack((w1,w2,w3)).transpose() 	  
 	  
-
-  def find_parent_tri_fast(self, xq, yq, dThresh=1000, latlon=False, k=10,tol=1e-10):
-      """
-      Find parent triangle for query points using existing element tree for preselection
-      and dot-product half-plane checks.
-      tol is tolerance for in element dot product check to loose constraints for points nearest 
-      the riangle edge. Appereantly compared to find_parent_tri the vectorized approach here    
-      gains speed at the coast of rounding errors being mor likeley / accumulating
-      
-      Returns:
-          parent: indices of triangles containing the points (-1 if none)
-          weights: barycentric coordinates (w1, w2, w3)
-      """
-      if latlon:
-          xun = np.asarray(self.lon)
-          yun = np.asarray(self.lat)
-          dThresh = min(dThresh, 2)
-          tree = self.element_tree_latlon
-          tree_ids = np.array(self.element_tree_ids)-1
-      else:
-          xun = np.asarray(self.x)
-          yun = np.asarray(self.y)
-          tree = self.element_tree_xy
-          tree_ids = np.array(self.element_tree_ids)-1
   
-      #dThresh2 = dThresh ** 2
-      tris = np.asarray(self.nvplt)
-  
-      # triangle vertices
-      trisX, trisY = xun[tris], yun[tris]
-  
-      # orthogonal side vectors for dot-product half-plane test
-      SideX = np.diff(trisY[:, [0, 1, 2, 0]], axis=1)
-      SideY = -np.diff(trisX[:, [0, 1, 2, 0]], axis=1)
-  
-      p = np.stack((xq, yq), axis=1)
-      parent = -1 * np.ones(len(p), int)
-
-      for ip, (px, py) in enumerate(p):
-          dists, cand_idx = tree.query([px, py], k=k, distance_upper_bound=dThresh)
-          cand_idx = np.atleast_1d(cand_idx[dists != np.inf])
-          if len(cand_idx) == 0:
-              continue
-      
-          # convert to numpy array
-          cand_tris = np.array(tree_ids[cand_idx])
-      
-          dx = px - trisX[cand_tris]
-          dy = py - trisY[cand_tris]
-      
-          #mask = np.all(dx * SideX[cand_tris] + dy * SideY[cand_tris] <= 0, axis=1)
-          mask = np.all(dx * SideX[cand_tris] + dy * SideY[cand_tris] <= tol, axis=1)
-      
-          inside = cand_tris[mask]
-          if len(inside) > 0:
-              parent[ip] = inside[0]
-      
-      # compute barycentric weights
-      xabc = xun[tris[parent]]
-      yabc = yun[tris[parent]]
-      
-      divisor = (yabc[:, 1] - yabc[:, 2]) * (xabc[:, 0] - xabc[:, 2]) + \
-                (xabc[:, 2] - xabc[:, 1]) * (yabc[:, 0] - yabc[:, 2])
-      
-      w1 = ((yabc[:, 1] - yabc[:, 2]) * (xq - xabc[:, 2]) + (xabc[:, 2] - xabc[:, 1]) * (yq - yabc[:, 2])) / divisor
-      w2 = ((yabc[:, 2] - yabc[:, 0]) * (xq - xabc[:, 2]) + (xabc[:, 0] - xabc[:, 2]) * (yq - yabc[:, 2])) / divisor
-      w3 = 1 - w1 - w2
-      
-      return parent, np.stack((w1, w2, w3), axis=1)
-
-
-class schism_output():
-    import netCDF4
-    nc = None
-
-    def __init__(self,filename):
-      """
-      read output filename and initialize grid
-      """
-      import netCDF4
-      #from netcdftime import utime
-      import cftime
-      
-      """
-      read output filename and initialize grid
-      """
-
-      
-      self.nc = netCDF4.Dataset(filename)
-      self.ncv = self.nc.variables
-      self.lon = self.ncv['SCHISM_hgrid_node_x'][:]
-      self.lat = self.ncv['SCHISM_hgrid_node_y'][:]
-      self.nodeids = np.arange(len(self.lon))
-      self.nv = self.ncv['SCHISM_hgrid_face_nodes'][:,:3]-1
-      self.time = self.ncv['time'][:] # s
-      self.time_units = self.ncv['time'].units
-      self.calendar = self.ncv['time'].calendar if hasattr(self.ncv['time'], 'calendar') else 'standard'
-      self.dates = cftime.num2date(self.time, units=self.time_units, calendar=self.calendar)
-
-      self.dates = self.ut.num2date(self.time)
-      self.dates =cftime.num2date(times, units, calendar='standard')
-      self.node_tree_latlon = None
-
-    def init_node_tree(self,latlon=True):
-      """
-      build a node tree using cKDTree
-      for a quick search for node coordinates
-      """
-      from scipy.spatial import cKDTree
-      if latlon:
-        self.node_tree_latlon = cKDTree(list(zip(self.lon,self.lat)))
-      else:
-        self.node_tree_xy = cKDTree(list(zip(self.x,self.y)))
-
-    def find_nearest_node(self,x,y,latlon=True):
-      """
-      find nearest node for given coordinate,
-      returns the node id
-      """
-      ridx=-1
-      if latlon:
-        if self.node_tree_latlon==None:
-          self.init_node_tree(latlon=True)
-        d,idx = self.node_tree_latlon.query((x,y),k=1)
-        ridx = self.nodeids[idx]
-      else:
-        if self.node_tree_latlon==None:
-           self.init_node_tree(latlon=False)
-        d,idx = self.node_tree_latlon.query((x,y),k=1)
-        ridx = self.inodes[idx]
-      return ridx
-
-	  
-	  
 class schism_output2():
     nc = None
 
@@ -1852,7 +1671,7 @@ class schism_station_output:
 		plt.gcf().autofmt_xdate()
 		plt.tight_layout()
 
-class schism_outputs_by_variable_old():
+class schism_outputs_by_variable():
    def __init__(self,ncdir='./outputs/',min_stack=0,max_stack=-1,varlist=None):
       """ output class for xarray access to schism  by variable output
 			schism_outputs_by_variable(ncdir='./outputs/',min_stack=0,max_stack=-1). ncdir is netcdf output directory max_stack is the highest number of stacks(this is identical with the highest stack_number only if all stacks from _1 in the folder). If varfiles==None, If varfiles=[out2d] only those files with a matching pattern will be taken"""
@@ -1933,272 +1752,6 @@ class schism_outputs_by_variable_old():
    def get(self,varname):
       """ Return handle to xarray dataset"""	
       return self.ds[self.vardict[varname]][varname]	  
-
-
-
-class schism_outputs_by_variable_slow:
-    def __init__(self, ncdir='./outputs/', min_stack=0, max_stack=-1, varlist=None, use_dask=False, dask_chunks_horizontal=1000):
-        """
-        Load SCHISM outputs by variable, optionally using Dask for lazy loading.
-
-        Parameters
-        ----------
-        ncdir : str
-            Directory containing NetCDF output files.
-        min_stack, max_stack : int
-            Range of stacks to load (default: all).
-        varlist : list of str
-            Variables to load (default: all).
-        use_dask : bool
-            If True, data is loaded lazily with Dask for memory efficiency.
-        dask_chunks_horizontal : int
-            Horizontal grid chunk size for Dask. 
-            - Small (~1000) for station-based comparisons (few nodes).
-            - Large (~10k–50k) for full-domain spatial analysis (maps, averages).
-        """
-        self.ncdir = ncdir
-        self.use_dask = use_dask
-
-        # Detect out2d files and stacks
-        nr_nc0 = np.sort(glob.glob(f'{ncdir}/out2d*.nc'))[0].split('/')[-1].split('_')[-1]
-        varfiles = glob.glob(f'{ncdir}*_{nr_nc0}')
-
-        if varlist is not None and isinstance(varlist, list):
-            varfiles = [var[var.rindex('/')+1:var.rindex('_')] 
-                        for var in varfiles if var[var.rindex('/')+1:var.rindex('_')] in varlist]
-        else:
-            varfiles = [var[var.rindex('/')+1:var.rindex('_')] for var in varfiles]
-
-        files = dict.fromkeys(varfiles)
-        self.ds = dict.fromkeys(varfiles)
-        
-
-        for key in files.keys():
-            # Collect all files for this variable
-            files[key]=np.hstack([np.sort(glob.glob('{:s}{:s}_{:s}.nc'.format(ncdir,key,'?'*iorder))) for iorder in range(1,6)])
-            check_files = [f.split('/')[-1] for f in files[key]]
-
-
-
-
-            # Determine min/max stack indices
-            if key == list(files.keys())[0]:
-                if min_stack > 0:
-                    min_stack = np.where([str(min_stack) in f for f in check_files])[0][0]
-                if max_stack > -1:
-                    max_stack = np.where([str(max_stack) in f for f in check_files])[0][0] + 1
-                else:
-                    max_stack = len(files[key]) + 1
-                    
-                            # Determine chunk size dynamically based on a small test load
-                file0=files[key][0]
-                print(file0)
-                ds_test = xr.open_dataset(file0)  # pick first file
-                ntimes = ds_test.dims['time']
-
-            # --- Load dataset ---
-            if use_dask:
-            
-                def _smart_chunk_open(f, ntimes, dask_chunks_horizontal):
-                    """Open file and choose chunking depending on presence of vertical layers."""
-                    ds = xr.open_dataset(f, engine='netcdf4')
-
-                    chunk_dict = {'time': ntimes, 'nSCHISM_hgrid_node': dask_chunks_horizontal}
-                    if 'nSCHISM_vgrid_layers' in ds.dims:
-                         chunk_dict['nSCHISM_vgrid_layers'] = -1
-
-                    return ds.chunk(chunk_dict)
-
-            
-                # Lazy loading with Dask
-                #self.ds[key] = xr.concat(
-                #    [xr.open_dataset(f).chunk({'time': ntimes, 'nSCHISM_hgrid_node': dask_chunks_horizontal, 'nSCHISM_vgrid_layers': -1})
-                #     for f in files[key][min_stack:max_stack]],dim='time'
-                #)
-                
-                self.ds[key] = xr.concat(
-                    [_smart_chunk_open(f, ntimes, dask_chunks_horizontal) for f in files[key][min_stack:max_stack]],
-                    dim='time'
-                )
-                
-            else:
-                # Standard eager loading
-                self.ds[key] = xr.concat(
-                    [xr.open_dataset(f) for f in files[key][min_stack:max_stack]],
-                    dim='time'
-                )
-
-        # Build variable dictionary for get()
-        exclude = []
-        self.vardict = {}
-        self.varlist = []
-
-        for nci_key in self.ds.keys():
-            for vari in self.ds[nci_key].keys():
-                if vari not in exclude:
-                    self.vardict[vari] = nci_key
-                    self.varlist.append(vari)
-
-    def get(self, varname):
-        """Return handle to xarray DataArray"""
-        key = self.vardict.get(varname)
-        if key is None:
-            raise KeyError(f"Variable {varname} not found")
-        return self.ds[key][varname]
-
-
-import glob
-import os
-import numpy as np
-import xarray as xr
-
-
-class schism_outputs_by_variable:
-    def __init__(
-        self,
-        ncdir="./outputs/",
-        min_stack=0,
-        max_stack=-1,
-        varlist=None,
-        use_dask=True,
-        dask_chunks_horizontal=1000,
-    ):
-        """
-        Load SCHISM outputs by variable, optionally using Dask for lazy loading.
-
-        Parameters
-        ----------
-        ncdir : str
-            Directory containing NetCDF output files.
-        min_stack, max_stack : int
-            Range of stacks to load (default: all).
-        varlist : list of str
-            Variables to load (default: all).
-        use_dask : bool
-            If True, data is loaded lazily with Dask for memory efficiency.
-        dask_chunks_horizontal : int
-            Horizontal grid chunk size for Dask.
-        """
-
-        self.ncdir = ncdir
-        self.use_dask = use_dask
-
-        # ------------------------------------------------------------
-        # Discover variables from existing files
-        # ------------------------------------------------------------
-        out2d = sorted(glob.glob(os.path.join(ncdir, "out2d*.nc")))
-        if len(out2d) == 0:
-            raise FileNotFoundError("No out2d*.nc files found")
-
-        # detect stack suffix
-        suffix = out2d[0].split("_")[-1]  # e.g. "1.nc"
-
-        all_varfiles = glob.glob(os.path.join(ncdir, f"*_{suffix}"))
-        all_vars = sorted(
-            {os.path.basename(f).split("_")[0] for f in all_varfiles}
-        )
-
-        if varlist is not None:
-            all_vars = [v for v in all_vars if v in varlist]
-
-        if len(all_vars) == 0:
-            raise ValueError("No variables found to load.")
-
-        self.ds = {}
-        self.vardict = {}
-        self.varlist = []
-
-        # ------------------------------------------------------------
-        # Loop over variables
-        # ------------------------------------------------------------
-        for key in all_vars:
-
-            # Collect all stacks for this variable
-            files = []
-            for iorder in range(1, 7):
-                files.extend(
-                    sorted(glob.glob(os.path.join(ncdir, f"{key}_{'?'*iorder}.nc")))
-                )
-
-            if len(files) == 0:
-                print(f"Warning: no files found for variable {key}")
-                continue
-
-            # Sort numerically by stack index
-            def _stacknum(f):
-                return int(os.path.basename(f).split("_")[-1].split(".")[0])
-
-            files = sorted(files, key=_stacknum)
-
-            # Apply stack slicing
-            if min_stack > 0 or max_stack != -1:
-                if max_stack == -1:
-                    files = files[min_stack:]
-                else:
-                    files = files[min_stack:max_stack]
-
-            if len(files) == 0:
-                print(f"Warning: empty stack range for variable {key}")
-                continue
-
-            # ------------------------------------------------------------
-            # Chunking
-            # ------------------------------------------------------------
-            if use_dask:
-                chunks = {
-                    "time": 1,  # important: keep time chunk small
-                    "nSCHISM_hgrid_node": dask_chunks_horizontal,
-                }
-            else:
-                chunks = None
-
-            # ------------------------------------------------------------
-            # Open dataset (FAST PATH)
-            # ------------------------------------------------------------
-            try:
-                ds = xr.open_mfdataset(
-                    files,
-                    combine="nested",
-                    concat_dim="time",
-                    chunks=chunks,
-                    parallel=True,
-                    engine="h5netcdf",
-                    coords="minimal",
-                    data_vars="minimal",
-                    compat="override",
-                )
-            except Exception:
-                # fallback engine
-                ds = xr.open_mfdataset(
-                    files,
-                    combine="by_coords",
-                    concat_dim="time",
-                    chunks=chunks,
-                    parallel=True,
-                    engine="netcdf4",
-                )
-
-            self.ds[key] = ds
-
-            # Register variables
-            for v in ds.data_vars:
-                self.vardict[v] = key
-                self.varlist.append(v)
-
-        if len(self.ds) == 0:
-            raise RuntimeError("No datasets were successfully loaded.")
-
-    # ------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------
-    def get(self, varname):
-        """Return handle to xarray DataArray"""
-        key = self.vardict.get(varname)
-        if key is None:
-            raise KeyError(f"Variable {varname} not found")
-        return self.ds[key][varname]
-
-
 		
 class param:		
 	"""	functions for param.in for reading and editing. Operates in local directory """

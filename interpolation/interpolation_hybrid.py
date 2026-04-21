@@ -39,7 +39,7 @@ import os
 import yaml
 
 #sys.path.insert(0, '/gpfs/work/ksddata/ROUTINES_personal/SCHISM/gb_wave_routine/')
-#sys.path.insert(0, '//work/gg0028/SCHISM/schism-hereon-utilities/')
+sys.path.insert(0, '/work/gg0028/SCHISM/schism-hereon-utilities/')
 from schism import *
 from matplotlib import pyplot as plt
 from glob import glob
@@ -81,7 +81,7 @@ def get_layer_weights(s, dep, ti):
 ########## User Settings ############################################
 
 # Set to True to extract only surface layer of 3D variables, False for full 3D interpolation
-interp_surface_only = True
+interp_surface_only = False
 
 ########## Settings ############################################
 
@@ -119,8 +119,9 @@ for key, value in std_names_3d.items():
         std_names_3d[key] = None
 
 # Directory settings - adjust these for your setup
-indir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/outputs_all2/'
-outdir = '/work/gg0028/g260114/EDITO/REF_sim_2017/'
+#indir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/outputs_all2/'
+indir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/outputs01/'
+outdir = '/work/gg0028/g260114/EDITO/REF_sim_2017_3D/'
 
 # Load setup
 setup_dir = '/work/gg0028/g260114/RUNS/GermanBight/GB_2017_wave_sed/Veg_CNTRL/'
@@ -179,7 +180,8 @@ global_atts['history'] = f"; SCHISM output processed via interpolation_hybrid.py
 if interp_surface_only:
     varfiles = dict.fromkeys(['out2d', 'temperature', 'salinity', 'horizontalVelX', 'horizontalVelY'])
 else:
-    varfiles = dict.fromkeys(['out2d', 'temperature', 'salinity', 'horizontalVelX', 'horizontalVelY', 'zCoordinates'])
+    #varfiles = dict.fromkeys(['out2d', 'temperature', 'salinity', 'horizontalVelX', 'horizontalVelY', 'zCoordinates'])
+    varfiles = dict.fromkeys(['out2d', 'horizontalVelX', 'horizontalVelY', 'zCoordinates'])
 
 # Find variable files
 for key in varfiles:
@@ -687,7 +689,9 @@ for idate in range(total_files):
                 else:
                     ds = xr.Dataset({da.name: da})
                 ds.attrs.update(global_atts)
-                ds.to_netcdf(outfile, mode="w")
+                ds32 = ds.astype("float32") # float 32
+                #ds.to_netcdf(outfile, mode="w")
+                ds32.to_netcdf(outfile, mode="w")
 
             elif dim3D and not interp_surface_only:
                 # 3D variable - need to reference existing depth coordinate
@@ -705,7 +709,9 @@ for idate in range(total_files):
                                            valid_range=valid_ranges[varname],
                                            **({ 'standard_name': std_name } 
                                               if std_name is not None else {})))
-                da.to_netcdf(outfile, mode='a')
+                da32=da.astype("float32") # float 32
+                #da.to_netcdf(outfile, mode='a')
+                da32.to_netcdf(outfile, mode='a')
 
             else:
                 # 2D variable or surface-only
@@ -717,7 +723,11 @@ for idate in range(total_files):
                                            valid_range=valid_ranges[varname],
                                            **({ 'standard_name': std_name } 
                                               if std_name is not None else {})))
-                da.to_netcdf(outfile, mode='a')
+                                                              da32=da.astype("float32") # float 32
+                #da.to_netcdf(outfile, mode='a')
+                da32=da.astype("float32") # float 32
+                da32.to_netcdf(outfile, mode='a')
+                #da.to_netcdf(outfile, mode='a')
 
         # Add depth field (bathymetry) if doing surface-only interpolation
         if interp_surface_only:
@@ -743,7 +753,9 @@ for idate in range(total_files):
                                                  valid_range=valid_ranges[varname],
                                                  **({ 'standard_name': depth_std_name } 
                                                     if depth_std_name is not None else {})))
-                da_depth.to_netcdf(outfile, mode='a')
+                da32=da_depth.astype("float32") # float 32
+                da32.to_netcdf(outfile, mode='a')
+                #da_depth.to_netcdf(outfile, mode='a')
         
         print(f"{file_progress} ✓ File processing complete: {outfile}")
     else:

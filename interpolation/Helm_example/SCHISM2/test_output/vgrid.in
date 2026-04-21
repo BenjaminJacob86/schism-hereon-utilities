@@ -1,0 +1,8 @@
+2 !ivcor (2: SZ; 1: Piece-wise sigma)
+2 1 5000. !nvrt, kz (# of Z-levels); h_s (transition depth between S and Z)
+Z levels
+1  -5000.
+S levels
+30.0 0.0 4.0  !h_c, theta_b, theta_f
+1 	 -1.000000
+2 	 0.000000
