@@ -9,9 +9,11 @@ __copyright__   = "Copyright 04\2021 - Helmholtz-Zentrum Hereon GmbH"
 
 __license__ = "GNU GPL v2.0 (https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)"
 __maintainer__ = "Benjamin Jacob"
-__email__ = "benjamin.jacob@hzg.de"
+__email__ = "benjamin.jacob@hereon.de"
 __status__ = "Development"
 
+import os
+from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
@@ -2200,71 +2202,110 @@ class schism_outputs_by_variable:
 
 
 		
-class param:		
-	"""	functions for param.in for reading and editing. Operates in local directory """
-	import os
-	def __init__(self,fname='param.nml',comments='!'):
-		#self.param_in=np.asarray(np.loadtxt(fname,comments=comments)[1:-1],int)-1		
-		
-		if '/' in fname:
-			islash=fname.rindex('/')
-			self.dir=fname[:islash]		
-		else:
-			self.dir='./'
-			
-		f=open(self.dir+'param.nml')	
-		self.lines=f.readlines()
-		f.close()
-		
-	def get_parameter(self,param='dt'):
-		""" read parameter from param.in"""
-		
-		for line in self.lines:
-			if param+' =' in line:
-				param= line.split('=')[1].split('!')[0]
-				try:
-					param=float(param)
-				except:
-					param=str(param)
-				break
-		return param
+class param:
+    """
+    Utility class for reading and modifying param.nml-style files.
+    """
 
-	def set_parameter(self,params,values,outname='param.nml',outdir='./'):
-		"""set_parameter(self,params,values,outname='param.nml',outdir='./') change parameters in param.in """
-		if outname=='param.nml':
-			try:
-				os.rename('param.nml','param.nml.bkp')
-			except:
-				pass
-		
-		if type(params) == str:
-			params=[params,]
-			values=[values,]
-		fout=open(outdir+outname,'w') 
-		for line in self.lines:
-			for param,value in zip(params,values):
-				if param+' =' in line:
-					line=' {:s} = {:.0f} !'.format(param,value)+line.split('!')[1]+'\n'
-					values.remove(value)
-					params.remove(param)
-			fout.write(line)		
+    def __init__(self, fname='param.nml', comments='!'):
+        self.comments = comments
 
-		fout.close()		
-		# load updated param.nml
-		print('updated param.nml has been loaded and will be accessed by get_parameters')	
-		f=open(outdir+outname)	
-		self.lines=f.readlines()
-		f.close()
-			
-	def set_time_step(self,dt,outname='param.nml',outdir='./',rnday=None):
-		""" set_time_step(self,dt,outname='param.nml',outdir='./',rnday=None) updates time step (dt) and all time related parameters (nspool,ihfskip,nhot_write,nspool_sta) to maintain output timings. rnday != None changes simulate length to specified Nr of days. dt new time step """
-		params=['dt','nspool','ihfskip','nhot_write','nspool_sta','wtiminc']
-		values=[self.get_parameter(param=param) for param in params]
-		values=[dt]+list(np.asarray(values[1:])*values[0]/dt)
-		if rnday != None:
-				params.append('rnday')
-				values.append(rnday)
-		self.set_parameter(params=params,values=values,outname=outname,outdir='./')		
+        path = Path(fname)
+        self.dir = path.parent if path.parent != Path('') else Path('.')
+        self.fname = path.name
+        self.path = self.dir / self.fname
+
+        self._load()
+
+    def _load(self):
+        """Load file contents into memory."""
+        with open(self.path, 'r') as f:
+            self.lines = f.readlines()
+
+    def _write(self, outpath, lines):
+        """Write updated lines to file."""
+        with open(outpath, 'w') as f:
+            f.writelines(lines)
+
+    def get_parameter(self, param='dt'):
+        """Read a parameter value from file."""
+        for line in self.lines:
+            if f"{param} =" in line:
+                value = line.split('=')[1].split(self.comments)[0].strip()
+                try:
+                    return float(value)
+                except ValueError:
+                    return value
+        raise KeyError(f"Parameter '{param}' not found")
+
+    def set_parameter(self, params, values, outname=None, outdir=None, backup=True):
+        """
+        Update one or multiple parameters.
+        """
+        if isinstance(params, str):
+            params = [params]
+            values = [values]
+
+        if len(params) != len(values):
+            raise ValueError("params and values must have same length")
+
+        outdir = Path(outdir) if outdir else self.dir
+        outname = outname if outname else self.fname
+        outpath = outdir / outname
+
+        # Backup original file if overwriting
+        if backup and outpath == self.path and outpath.exists():
+            backup_path = outpath.with_suffix(outpath.suffix + '.bkp')
+            os.replace(outpath, backup_path)
+
+        param_map = dict(zip(params, values))
+        updated_lines = []
+
+        for line in self.lines:
+            updated = False
+            for param, value in param_map.items():
+                if f"{param} =" in line:
+                    comment_part = ''
+                    if self.comments in line:
+                        comment_part = self.comments + line.split(self.comments, 1)[1].rstrip()
+
+                    # Preserve formatting loosely
+                    if isinstance(value, float):
+                        value_str = f"{value}"
+                    else:
+                        value_str = str(value)
+
+                    line = f" {param} = {value_str} {comment_part}\n"
+                    updated = True
+                    break
+
+            updated_lines.append(line)
+
+        self._write(outpath, updated_lines)
+        self.lines = updated_lines
+        self.path = outpath
+
+        print(f"Updated file written to: {outpath}")
+
+    def set_time_step(self, dt, outname=None, outdir=None, rnday=None):
+        """
+        Update dt and scale related parameters to maintain timing.
+        """
+        import numpy as np
+
+        params = ['dt', 'nspool', 'ihfskip', 'nhot_write', 'nspool_sta', 'wtiminc']
+        current_values = [self.get_parameter(p) for p in params]
+
+        old_dt = current_values[0]
+
+        # Scale time-related parameters
+        scaled_values = [dt] + list(np.asarray(current_values[1:]) * old_dt / dt)
+
+        if rnday is not None:
+            params.append('rnday')
+            scaled_values.append(rnday)
+
+        self.set_parameter(params, scaled_values, outname=outname, outdir=outdir)		
 		
 		
 		
