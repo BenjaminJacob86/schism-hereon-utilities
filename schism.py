@@ -1039,6 +1039,11 @@ class schism_setup(object):
 	  
       if (proj!='merc') & stock_image:
           ax.stock_img()
+          import cartopy.io.img_tiles as cimgt
+          tiler = cimgt.Stamen('terrain-background')  # or 'toner', 'watercolor'
+          ax = plt.axes(projection=tiler.crs)
+          ax.add_image(tiler, 8)  # higher number = higher resolution (zoom level)
+          
       #ph=plt.tripcolor(self.projx,self.projy,self.nvplt,nodevalues,shading='flat',mask=mask,cmap=cmap)
 
       if len(values)==self.nnodes: #test ax instead plt here 	
@@ -1086,26 +1091,20 @@ class schism_setup(object):
       yticks=np.unique(np.round(np.linspace((zoom_extend[2]),(zoom_extend[3]),nyticks),1))
 
 
+      gl = ax.gridlines(draw_labels=True, crs=ccrs.PlateCarree())
+      gl.top_labels = True
+      gl.right_labels = True
 
-      if proj_name in ['merc', 'platecarree']:
-          ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-          ax.set_yticks(yticks, crs=ccrs.PlateCarree())
-          lon_formatter = LongitudeFormatter(number_format='.1f', degree_symbol='', dateline_direction_label=True)
-          lat_formatter = LatitudeFormatter(number_format='.1f', degree_symbol='')
-          ax.xaxis.set_major_formatter(lon_formatter)
-          ax.yaxis.set_major_formatter(lat_formatter)
+#      if isinstance(proj, ccrs.PlateCarree) or proj_name in ['merc', 'platecarree']:
+#          ax.set_xticks(xticks, crs=ccrs.PlateCarree())
+#          ax.set_yticks(yticks, crs=ccrs.PlateCarree())
+#          lon_formatter = LongitudeFormatter(number_format='.1f', degree_symbol='', dateline_direction_label=True)
+#          lat_formatter = LatitudeFormatter(number_format='.1f', degree_symbol='')
+#          ax.xaxis.set_major_formatter(lon_formatter)
+#          ax.yaxis.set_major_formatter(lat_formatter)
+#
 
 
-
-      #ax.set_xticks(xticks, crs=ccrs.PlateCarree())
-      #ax.set_yticks(yticks, crs=ccrs.PlateCarree())
-      #ax.set_xticks(xticks, crs=proj)
-      #ax.set_yticks(yticks, crs=proj)
-      
-      #lon_formatter = LongitudeFormatter(number_format='.1f',degree_symbol='',dateline_direction_label=True)
-      #lat_formatter = LatitudeFormatter(number_format='.1f',degree_symbol='')
-      #ax.xaxis.set_major_formatter(lon_formatter)
-      #ax.yaxis.set_major_formatter(lat_formatter)
       
       # adjust height of colorbar to fit plot axes
       divider = make_axes_locatable(ax)
