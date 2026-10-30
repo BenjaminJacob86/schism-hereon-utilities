@@ -1038,12 +1038,17 @@ class schism_setup(object):
           ax.add_feature(cfeature.RIVERS)		  
 	  
       if (proj!='merc') & stock_image:
-          ax.stock_img()
+          #ax.stock_img()
           import cartopy.io.img_tiles as cimgt
-          tiler = cimgt.Stamen('terrain-background')  # or 'toner', 'watercolor'
-          ax = plt.axes(projection=tiler.crs)
-          ax.add_image(tiler, 8)  # higher number = higher resolution (zoom level)
           
+          class OpenTopoMap(cimgt.GoogleTiles):
+              def _image_url(self, tile):
+                  x, y, z = tile
+                  return f"https://tile.opentopomap.org/{z}/{x}/{y}.png"
+          tiler = OpenTopoMap()
+          #ax.add_image(tiler, 8, zorder=0)  change zool level due to crash
+          ax.add_image(tiler, 4, zorder=0)
+                    
       #ph=plt.tripcolor(self.projx,self.projy,self.nvplt,nodevalues,shading='flat',mask=mask,cmap=cmap)
 
       if len(values)==self.nnodes: #test ax instead plt here 	
@@ -1093,7 +1098,7 @@ class schism_setup(object):
 
       gl = ax.gridlines(draw_labels=True, crs=ccrs.PlateCarree())
       gl.top_labels = True
-      gl.right_labels = True
+      gl.right_labels = False
 
 #      if isinstance(proj, ccrs.PlateCarree) or proj_name in ['merc', 'platecarree']:
 #          ax.set_xticks(xticks, crs=ccrs.PlateCarree())
